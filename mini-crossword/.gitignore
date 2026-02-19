@@ -1,0 +1,13 @@
+# Env with secrets (use .env.example as template)
+.env
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Editor / OS
+.DS_Store
+*.log
+*.local

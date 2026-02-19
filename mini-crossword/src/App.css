@@ -1,0 +1,705 @@
+.app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.app:has(.creator-layout) {
+  max-width: 1150px;
+}
+
+.home-app {
+  text-align: center;
+  padding-top: 3rem;
+}
+
+.home-header h1 {
+  margin-bottom: 0.5rem;
+}
+
+.home-prompt {
+  margin: 0 0 2rem;
+  font-size: 1.1rem;
+  color: #555;
+}
+
+.home-actions {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.home-btn {
+  padding: 0.75rem 2rem;
+  font-size: 1.1rem;
+  border: 2px solid #333;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.home-btn:hover {
+  background: #f0f0f0;
+}
+
+.exported-list {
+  margin-bottom: 1rem;
+}
+
+.exported-list h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.exported-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.exported-list li {
+  margin-bottom: 0.25rem;
+}
+
+.link-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.9rem;
+  background: transparent;
+  border: 1px solid #999;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.link-btn:hover {
+  background: #eee;
+}
+
+.puzzle-list-page {
+  margin-bottom: 1rem;
+}
+
+.puzzle-list-detail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.puzzle-list-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.puzzle-list-title-btn {
+  font-size: 1rem;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #0066cc;
+  text-align: left;
+}
+
+.puzzle-list-title-btn:hover {
+  text-decoration: underline;
+}
+
+.puzzle-list-meta {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.creator-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.creator-pane {
+  flex-shrink: 0;
+  width: 220px;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.creator-pane h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.puzzle-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.puzzle-list li {
+  margin-bottom: 0.25rem;
+}
+
+.puzzle-list-btn {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.puzzle-list-btn:hover {
+  background: #eee;
+}
+
+.puzzle-list-btn.active {
+  background: #e0e8f0;
+  border-color: #669;
+}
+
+.creator-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.creator-name-row {
+  display: block;
+  margin-top: 0.5rem;
+}
+
+.creator-name-input {
+  max-width: 20rem;
+  margin-left: 0.25rem;
+}
+
+.error-dismiss {
+  margin-left: 0.5rem;
+  padding: 0 0.25rem;
+  font-size: 1.1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #666;
+}
+
+.error-dismiss:hover {
+  color: #c00;
+}
+
+.solver-timer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.timer-display {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.timer-pause-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  border: 1px solid #666;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.solver-view.solver-paused {
+  position: relative;
+}
+
+.solver-pause-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.solver-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.solver-modal {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  max-width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.solver-modal p {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+}
+
+.solver-modal button {
+  margin-right: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #666;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.title-row,
+.acrostic-row {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.title-input {
+  max-width: 20rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.acrostic-row {
+  margin-bottom: 1rem;
+}
+
+.file-label {
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border: 1px solid #666;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.9rem;
+}
+
+.file-label:hover {
+  background: #eee;
+}
+
+.file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.image-parse-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.image-parse-box label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.image-parse-box input[type="number"] {
+  width: 3rem;
+  padding: 0.25rem;
+}
+
+.export-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.size-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.size-row input[type="number"] {
+  width: 4rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.validation-error {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: #b00;
+}
+
+.grid-wrap {
+  display: inline-block;
+  border: 2px solid #333;
+  padding: 2px;
+  background: #333;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 2rem);
+  grid-template-rows: repeat(var(--rows), 2rem);
+  gap: 1px;
+  background: #333;
+}
+
+.cell {
+  margin: 0;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-weight: 600;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell.white {
+  background: #fff;
+  color: #333;
+}
+
+.cell.black {
+  background: #1a1a1a;
+  cursor: context-menu;
+}
+
+.cell:hover.white {
+  background: #f0f0f0;
+}
+
+/* Creator: white cells are inputs */
+.creator-cell {
+  position: relative;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: text;
+}
+
+.creator-cell-input {
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.creator-cell-input:focus {
+  background: #e8f4ff;
+}
+
+.answer-readonly {
+  font-size: 0.9rem;
+  color: #555;
+  min-width: 4rem;
+  padding: 0.2rem 0.4rem;
+  background: #f5f5f5;
+  border-radius: 2px;
+}
+
+.cell-num {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  line-height: 1;
+}
+
+.clues-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.clues-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.clue-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.clue-num {
+  flex-shrink: 0;
+  font-weight: 600;
+  min-width: 1.5rem;
+}
+
+.clue-row input[type="text"] {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.answer-input {
+  width: 6rem !important;
+  min-width: 4rem !important;
+  text-transform: uppercase;
+}
+
+.answer-len {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.actions button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #666;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.actions button:hover {
+  background: #eee;
+}
+
+.status {
+  font-size: 0.9rem;
+  color: #060;
+}
+
+.error {
+  font-size: 0.9rem;
+  color: #b00;
+}
+
+/* Hidden export area for image capture */
+.export-area {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+}
+
+.export-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 28px);
+  grid-template-rows: repeat(var(--rows), 28px);
+  gap: 1px;
+  background: #333;
+  padding: 2px;
+}
+
+.export-cell {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.export-cell.white {
+  background: #fff;
+  border: 1px solid #ccc;
+}
+
+.export-cell.black {
+  background: #1a1a1a;
+}
+
+.export-num {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  font-size: 8px;
+}
+
+.export-letter {
+  margin-top: 4px;
+}
+
+/* Solver */
+.solver-view .header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-link {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.9rem;
+  background: transparent;
+  border: 1px solid #666;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #1a1a1a;
+}
+
+.nav-link:hover {
+  background: #eee;
+}
+
+.completion-banner {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #d4edda;
+  color: #155724;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.solver-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.solver-grid-wrap {
+  flex-shrink: 0;
+}
+
+.solver-grid .cell {
+  cursor: default;
+}
+
+.solver-cell {
+  position: relative;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.solver-input {
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 1px solid #999;
+  border-radius: 2px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  background: #fff;
+}
+
+.solver-input:focus {
+  outline: none;
+  border-color: #333;
+}
+
+.solver-cell.incorrect .solver-input {
+  background: #f8d7da;
+  border-color: #f5c6cb;
+}
+
+.solver-clue-row {
+  align-items: center;
+}
+
+.clue-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+
+.reveal-word-btn {
+  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid #999;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.reveal-word-btn:hover {
+  background: #f0f0f0;
+}
+
+.paste-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.paste-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.load-saved-btn {
+  margin-top: 0.5rem;
+}
