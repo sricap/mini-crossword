@@ -28,8 +28,8 @@ When the app is launched, take the user to a browser URL and ask whether to Crea
 
 ### Grid
 - **Size:** 5x5 default. Prompt the creator to override the size and use that. If the mode is "Acrostic", disable the Column counter and display the same value as the Row counter (since an Acrostic has have the same number rows and columns)
-- **Black cells:** Provide an easy interface for the creator to pick out black cells. Shift+click. Just a click without Shift should allow user to type a letter. See below. 
-- **White cells:** Let the user type a letter to fill out the grid. Move cursor to next cell after displaying the typed letter. Allow the cell to be made empty using backspace, delete. Allow overwriting it with another letter. Only allow letters A-Z. 
+- **Black cells:** Provide an easy interface for the creator to pick out black cells. **Space bar** or **Shift+click** toggles a cell black/white (diagonally symmetric). Just a click (without Shift) should allow the user to type a letter. See below.
+- **White cells:** Let the user type a letter to fill out the grid. Move cursor to next cell after displaying the typed letter (must work on mobile as well as desktop; use both keyboard and input change events as needed). Allow the cell to be made empty using backspace, delete. Allow overwriting. Only allow letters A–Z. 
 - **Symmetry:** Ensure that the grid is diagonally symmetric in its white abd black square pattern. This is normally the case for any standard crossword.
 - **Validation:** Minimum 3 letter words
 ### Clues & answers
@@ -59,9 +59,11 @@ An Acrostic is a puzzle where the horizontal and vertical words are the same. It
 
 ### UI/UX for creator
 - Layout: single page
-- Left Pane: At the **top** of the list, show a **"New..."** item. Clicking it opens an **in-app modal** (no browser dialog title such as "localhost says"). The modal shows only the message **"Save current puzzle to the database?"** with two buttons: **No** and **Yes**. **No** does not save; it switches to a blank new puzzle. **Yes** saves the current puzzle (create or update) to the database, then switches to a blank new puzzle. Below "New...", list all the puzzles from the database with hyperlinks.
-- When the user clicks **any other puzzle** in the left pane (to switch to it), show the same in-app modal: "Save current puzzle to the database?" with **No** and **Yes**. **No** switches to the selected puzzle without saving the current edits. **Yes** saves the current puzzle to the database, then loads the selected puzzle.
-- Main Panel: Creator view with grid, clues, and buttons to load/save
+- **Desktop:** Left pane with puzzle list; main panel with grid, clues, and actions. At the **top** of the list, show **"New..."**. Clicking it or any other puzzle opens the save-confirm modal as below.
+- **Mobile (narrow viewport):** Hide the left pane. Show a **top bar** with: **Home** (icon only, left), a **dropdown** containing "New..." and all puzzles (same behavior as pane), and **Solve a puzzle** (icon only, right). Main content is the same grid, clues, and actions.
+- **Save modal:** "Save current puzzle to the database?" with **No** and **Yes**. **No** = switch without saving. **Yes** = save then switch. Shown when choosing "New..." or another puzzle.
+- **Labels:** Use "Name your creation" (not "Puzzle title (max 25)"); "Acrostic (same words across and down)" (short); "Creator" (not "Creator name (for DB, max 50)"); "Puzzle blurb (optional)" (not "3–4 sentences"). Under Grid, hint: "Space or Shift+click a cell to toggle black/white (diagonally symmetric). Click to type." (omit A–Z/Backspace/arrows detail.)
+- **Icons:** Use icons for navigation and actions (Home, Solve, Check, Reveal all, Save, etc.) on both mobile and desktop; keep tooltips/aria-labels for accessibility.
 - **Excluded from Creator:** Do not include these buttons: Load from image, Copy link (encoded), Export as JPG.
 
 ---
@@ -91,7 +93,7 @@ An Acrostic is a puzzle where the horizontal and vertical words are the same. It
 
 
 ### Input and Transitions    
-- When a letter is typed, moved to the next letter square in that word.
+- When a letter is typed, move to the next letter square in that word (must work on **mobile** as well as desktop—advance focus on input change, not only on key events).
 - If the last letter of a word is typed, move to the next row. Cycle to the first row after the last one.
 - One letter per cell; same cell shares its letter for across and down.
 
@@ -173,12 +175,18 @@ NOTE: There should be no "load saved progress" button below the table of puzzles
 
 ---
 
-## 5. Technical preferences
+## 5. Mobile and responsive
+
+- **Creator:** Typing in grid cells must work on mobile (soft keyboard); use both key and input-change handling so the cursor advances to the next cell. Space bar toggles current cell black/white (same as Shift+click). On narrow viewports, replace the left pane with a top-bar dropdown for puzzle list; Home and Solve use icons.
+- **Solver:** Cursor must move to the next cell after typing on mobile; advance focus on input change when a letter is entered.
+- **Icons:** Use icons for primary actions (Home, Solve, Check, Reveal all, Save, etc.) on mobile and web, with accessible labels.
+
+## 6. Technical preferences
 
 - **Stack:** React
 - **Styling:** CSS. Keep it as simple as possible
 - **Hosting:** Static site
-- **Browser support:** Chrome & Safari
+- **Browser support:** Chrome & Safari (and mobile browsers)
 - **Database:** Supabase
 
 

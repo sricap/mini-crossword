@@ -13,6 +13,7 @@ import {
 } from './utils/puzzle'
 import { listPuzzles, getPuzzle, createPuzzle, updatePuzzle } from './api/db'
 import { SolverView, SolverLanding } from './SolverView'
+import { IconHome, IconCreate, IconSolve, IconSave, IconLink } from './Icons'
 import './App.css'
 
 const DEFAULT_SIZE = 5
@@ -94,7 +95,10 @@ function App() {
       const idx = whiteCellOrder.findIndex(([rr, cc]) => rr === r && cc === c)
       if (idx < 0) return
       const key = e.key
-      if (key.length === 1 && /^[a-zA-Z]$/.test(key)) {
+      if (key === ' ') {
+        e.preventDefault()
+        handleToggleBlack(e, r, c)
+      } else if (key.length === 1 && /^[a-zA-Z]$/.test(key)) {
         e.preventDefault()
         setLetter(r, c, key)
         if (idx < whiteCellOrder.length - 1) focusCell(idx + 1)
@@ -110,7 +114,18 @@ function App() {
         if (idx > 0) focusCell(idx - 1)
       }
     },
-    [whiteCellOrder, setLetter, focusCell]
+    [whiteCellOrder, setLetter, focusCell, handleToggleBlack]
+  )
+
+  const handleCreatorCellChange = useCallback(
+    (e, r, c, whiteIndex) => {
+      const raw = (e.target.value || '').toUpperCase().replace(/[^A-Z]/g, '').slice(-1)
+      setLetter(r, c, raw)
+      if (raw.length === 1 && whiteIndex < whiteCellOrder.length - 1) {
+        setTimeout(() => focusCell(whiteIndex + 1), 0)
+      }
+    },
+    [whiteCellOrder.length, setLetter, focusCell]
   )
 
   const answersFromLetters = useMemo(
@@ -402,11 +417,13 @@ function App() {
           <p className="home-prompt">Create or solve a puzzle?</p>
         </header>
         <section className="section home-actions">
-          <button type="button" className="home-btn" onClick={goToCreator}>
-            Create
+          <button type="button" className="home-btn action-btn-icon" onClick={goToCreator} title="Create" aria-label="Create">
+            <IconCreate size={22} />
+            <span>Create</span>
           </button>
-          <button type="button" className="home-btn" onClick={goToSolver}>
-            Solve
+          <button type="button" className="home-btn action-btn-icon" onClick={goToSolver} title="Solve a puzzle" aria-label="Solve a puzzle">
+            <IconSolve size={22} />
+            <span>Solve</span>
           </button>
         </section>
       </div>
@@ -455,17 +472,45 @@ function App() {
         </div>
       )}
 
-      <header className="header">
-        <button type="button" className="nav-link" onClick={goToHome}>
-          ← Home
-        </button>
-        <button type="button" className="nav-link" onClick={goToSolver}>
-          Solve a puzzle →
-        </button>
-        <h1>Mini Crossword — Creator</h1>
+      <header className="header creator-header creator-header-mobile-only">
+        <div className="creator-header-mobile">
+          <button type="button" className="nav-link nav-link-icon" onClick={goToHome} title="Home" aria-label="Home">
+            <IconHome size={22} />
+          </button>
+          <select
+            className="creator-mobile-dropdown"
+            value={puzzleId || 'new'}
+            onChange={(e) => {
+              const v = e.target.value
+              if (v === 'new') handleNewPuzzle()
+              else handlePuzzleSelect(v)
+            }}
+            aria-label="Select puzzle"
+          >
+            <option value="new">New...</option>
+            {puzzleList.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title || 'Untitled'}
+                {p.creator ? ` — ${p.creator}` : ''}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="nav-link nav-link-icon" onClick={goToSolver} title="Solve a puzzle" aria-label="Solve a puzzle">
+            <IconSolve size={22} />
+          </button>
+        </div>
       </header>
 
       <div className="creator-layout">
+        <div className="creator-left">
+          <div className="creator-left-header">
+            <button type="button" className="nav-link nav-link-icon" onClick={goToHome} title="Home" aria-label="Home">
+              <IconHome size={20} />
+            </button>
+            <button type="button" className="nav-link nav-link-icon" onClick={goToSolver} title="Solve a puzzle" aria-label="Solve a puzzle">
+              <IconSolve size={20} />
+            </button>
+          </div>
         <aside className="creator-pane">
           <h2>Puzzles</h2>
           {listLoadError && <p className="error">{listLoadError}</p>}
@@ -492,10 +537,12 @@ function App() {
             ))}
           </ul>
         </aside>
+        </div>
         <main className="creator-main">
+          <h1 className="creator-main-title">Create away...</h1>
       <section className="section">
         <label className="title-row">
-          Puzzle title (max 25):{' '}
+          Name your creation:{' '}
           <input
             type="text"
             maxLength={25}
@@ -520,10 +567,10 @@ function App() {
               }
             }}
           />
-          Acrostic (same words across and down; hide down clues)
+          Acrostic (same words across and down)
         </label>
         <label className="creator-name-row">
-          Creator name (for DB, max 50):{' '}
+          Creator:{' '}
           <input
             type="text"
             maxLength={50}
@@ -534,7 +581,7 @@ function App() {
           />
         </label>
         <label className="creator-blurb-row">
-          Puzzle blurb (optional, 3–4 sentences):{' '}
+          Puzzle blurb (optional):{' '}
           <textarea
             value={blurb}
             onChange={(e) => setBlurb(e.target.value)}
@@ -572,7 +619,7 @@ function App() {
           </label>
         </div>
         <p className="hint">
-          Shift+click a cell to toggle black/white (diagonally symmetric). Click to type; A–Z only; Backspace/Delete clears; arrows move.
+          Space or Shift+click a cell to toggle black/white (diagonally symmetric). Click to type.
         </p>
         {!validation.valid && (
           <p className="validation-error">
@@ -614,12 +661,13 @@ function App() {
                     {num != null && <span className="cell-num">{num}</span>}
                     <input
                       type="text"
+                      inputMode="text"
                       maxLength={1}
                       value={letters[r][c]}
                       data-index={whiteIndex}
                       className="creator-cell-input"
                       onKeyDown={(e) => handleCreatorKeyDown(e, r, c)}
-                      onChange={() => {}}
+                      onChange={(e) => handleCreatorCellChange(e, r, c, whiteIndex)}
                     />
                   </div>
                 )
@@ -681,19 +729,23 @@ function App() {
       </section>
 
       <section className="section actions">
-        <button type="button" onClick={saveToDb} disabled={!validation.valid}>
-          Save to database
+        <button type="button" className="action-btn-icon" onClick={saveToDb} disabled={!validation.valid} title="Save to database" aria-label="Save to database">
+          <IconSave size={18} />
+          <span className="action-btn-label">Save to database</span>
         </button>
         {dbSaveStatus && <span className="status">{dbSaveStatus}</span>}
-        <button type="button" onClick={saveToBrowser}>
-          Save to browser
+        <button type="button" className="action-btn-icon" onClick={saveToBrowser} title="Save to browser" aria-label="Save to browser">
+          <IconSave size={18} />
+          <span className="action-btn-label">Save to browser</span>
         </button>
-        <button type="button" onClick={loadFromBrowser}>
-          Load saved
+        <button type="button" className="action-btn-icon" onClick={loadFromBrowser} title="Load saved" aria-label="Load saved">
+          <IconSave size={18} />
+          <span className="action-btn-label">Load saved</span>
         </button>
         {puzzleId && (
-          <button type="button" onClick={copyLinkById}>
-            Copy link (by ID)
+          <button type="button" className="action-btn-icon" onClick={copyLinkById} title="Copy link (by ID)" aria-label="Copy link (by ID)">
+            <IconLink size={18} />
+            <span className="action-btn-label">Copy link</span>
           </button>
         )}
         {copyStatus && <span className="status">{copyStatus}</span>}

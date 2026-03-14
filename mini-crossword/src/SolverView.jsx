@@ -9,6 +9,7 @@ import {
   getIncorrectCells,
 } from './utils/puzzle'
 import { listPuzzles, getPuzzle } from './api/db'
+import { IconBack, IconCheck, IconRevealAll, IconSave } from './Icons'
 
 const STORAGE_KEY_PROGRESS = 'mini-crossword-solver-progress'
 
@@ -205,8 +206,8 @@ function SolverView({ puzzle, initialFill, onBack }) {
         </div>
       )}
       <header className="header solver-header">
-        <button type="button" className="nav-link" onClick={onBack}>
-          ← Home
+        <button type="button" className="nav-link nav-link-icon" onClick={onBack} title="Home" aria-label="Home">
+          <IconBack size={22} />
         </button>
         <h1>{puzzle.title ? `${puzzle.title} — Solver` : 'Mini Crossword — Solver'}</h1>
         <div className="solver-timer">
@@ -250,11 +251,19 @@ function SolverView({ puzzle, initialFill, onBack }) {
                       {num != null && <span className="cell-num">{num}</span>}
                       <input
                         type="text"
+                        inputMode="text"
                         maxLength={1}
                         value={fill[r][c]}
                         data-solver-index={solverIdx}
                         className="solver-input solver-cell-input"
-                        onChange={(e) => setCell(r, c, e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          setCell(r, c, v)
+                          const letter = (v.slice(-1) || '').toUpperCase()
+                          if (letter && /^[A-Z]$/.test(letter) && solverIdx >= 0 && solverIdx < solverCellOrder.length - 1) {
+                            setTimeout(() => focusSolverCell(solverIdx + 1), 0)
+                          }
+                        }}
                         onKeyDown={(e) => handleSolverKeyDown(e, r, c)}
                         readOnly={showCompletion}
                         aria-readonly={showCompletion}
@@ -335,14 +344,17 @@ function SolverView({ puzzle, initialFill, onBack }) {
       <section className="section actions">
         {!showCompletion && (
           <>
-            <button type="button" onClick={check}>
-              Check
+            <button type="button" className="action-btn-icon" onClick={check} title="Check" aria-label="Check">
+              <IconCheck size={18} />
+              <span className="action-btn-label">Check</span>
             </button>
-            <button type="button" onClick={revealAll}>
-              Reveal all
+            <button type="button" className="action-btn-icon" onClick={revealAll} title="Reveal all" aria-label="Reveal all">
+              <IconRevealAll size={18} />
+              <span className="action-btn-label">Reveal all</span>
             </button>
-            <button type="button" onClick={saveProgress}>
-              Save progress
+            <button type="button" className="action-btn-icon" onClick={saveProgress} title="Save progress" aria-label="Save progress">
+              <IconSave size={18} />
+              <span className="action-btn-label">Save progress</span>
             </button>
           </>
         )}
@@ -441,8 +453,8 @@ function SolverLanding({ onLoaded, onBack, loadError: propLoadError = '', onClea
   return (
     <div className="solver-view">
       <header className="header solver-header">
-        <button type="button" className="nav-link" onClick={onBack}>
-          ← Home
+        <button type="button" className="nav-link nav-link-icon" onClick={onBack} title="Home" aria-label="Home">
+          <IconBack size={22} />
         </button>
         <h1>Mini Crossword — Solver</h1>
       </header>
