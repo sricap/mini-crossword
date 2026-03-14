@@ -229,6 +229,21 @@ export function getCorrectLetterAt(puzzle, words, r, c) {
 }
 
 /**
+ * Check if every white cell has at least one letter (grid is full).
+ */
+export function isGridFull(puzzle, fill) {
+  const rows = puzzle.grid.length;
+  const cols = puzzle.grid[0].length;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (puzzle.grid[r][c]) continue;
+      if (!(fill[r][c] || '').trim()) return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Check if fill is complete and correct.
  */
 export function isPuzzleComplete(puzzle, fill) {

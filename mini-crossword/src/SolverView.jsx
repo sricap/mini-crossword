@@ -5,6 +5,7 @@ import {
   decodePuzzle,
   wordKey,
   isPuzzleComplete,
+  isGridFull,
   getIncorrectCells,
 } from './utils/puzzle'
 import { listPuzzles, getPuzzle } from './api/db'
@@ -51,10 +52,17 @@ function SolverView({ puzzle, initialFill, onBack }) {
 
   useEffect(() => {
     if (showCompletion) return
-    if (!isPuzzleComplete(puzzle, fill)) return
-    setShowCompletion(true)
-    setPaused(true)
-    setModalMessage(`Congratulations! You solved it in ${formatTimeForMessage(elapsedSeconds)}!`)
+    if (isPuzzleComplete(puzzle, fill)) {
+      setShowCompletion(true)
+      setPaused(true)
+      setModalMessage(`Congratulations! You solved it in ${formatTimeForMessage(elapsedSeconds)}!`)
+      return
+    }
+    if (isGridFull(puzzle, fill)) {
+      setIncorrectCells(getIncorrectCells(puzzle, fill))
+      setPaused(true)
+      setModalMessage('Aw, snap! At least one square does not have the right letter. Try again!')
+    }
   }, [puzzle, fill, elapsedSeconds, showCompletion])
 
   const solverCellOrder = useMemo(() => {
