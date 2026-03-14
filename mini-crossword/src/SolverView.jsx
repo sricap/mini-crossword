@@ -44,10 +44,18 @@ function SolverView({ puzzle, initialFill, onBack }) {
   const cols = puzzle.grid[0].length
 
   useEffect(() => {
-    if (paused) return
+    if (paused || showCompletion) return
     const id = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
     return () => clearInterval(id)
-  }, [paused])
+  }, [paused, showCompletion])
+
+  useEffect(() => {
+    if (showCompletion) return
+    if (!isPuzzleComplete(puzzle, fill)) return
+    setShowCompletion(true)
+    setPaused(true)
+    setModalMessage(`Congratulations! You solved it in ${formatTimeForMessage(elapsedSeconds)}!`)
+  }, [puzzle, fill, elapsedSeconds, showCompletion])
 
   const solverCellOrder = useMemo(() => {
     const list = []
@@ -86,6 +94,7 @@ function SolverView({ puzzle, initialFill, onBack }) {
     const complete = wrong.size === 0 && isPuzzleComplete(puzzle, fill)
     if (complete) {
       setShowCompletion(true)
+      setPaused(true)
       setModalMessage(`Congratulations! You solved it in ${formatTimeForMessage(elapsedSeconds)}!`)
     } else {
       setModalMessage('Aw, snap! At least one square does not have the right letter. Try again!')
@@ -96,20 +105,24 @@ function SolverView({ puzzle, initialFill, onBack }) {
   const revealWord = useCallback((w) => {
     const key = wordKey(w.number, w.direction)
     const answer = (puzzle.answers[key] || '').toUpperCase()
-    setFill((prev) => {
-      const next = prev.map((row) => row.slice())
-      if (w.direction === 'across') {
-        for (let i = 0; i < w.length; i++)
-          next[w.startRow][w.startCol + i] = answer[i] || ''
-      } else {
-        for (let i = 0; i < w.length; i++)
-          next[w.startRow + i][w.startCol] = answer[i] || ''
-      }
-      return next
-    })
+    const next = fill.map((row) => row.slice())
+    if (w.direction === 'across') {
+      for (let i = 0; i < w.length; i++)
+        next[w.startRow][w.startCol + i] = answer[i] || ''
+    } else {
+      for (let i = 0; i < w.length; i++)
+        next[w.startRow + i][w.startCol] = answer[i] || ''
+    }
+    setFill(next)
     setIncorrectCells(new Set())
-    setShowCompletion(false)
-  }, [puzzle])
+    if (isPuzzleComplete(puzzle, next)) {
+      setShowCompletion(true)
+      setPaused(true)
+      setModalMessage(`Congratulations! You solved it in ${formatTimeForMessage(elapsedSeconds)}!`)
+    } else {
+      setShowCompletion(false)
+    }
+  }, [puzzle, fill, elapsedSeconds])
 
   const revealAll = useCallback(() => {
     const next = fill.map((row) => row.slice())
@@ -127,6 +140,7 @@ function SolverView({ puzzle, initialFill, onBack }) {
     setFill(next)
     setIncorrectCells(new Set())
     setShowCompletion(true)
+    setPaused(true)
   }, [puzzle, words, fill])
 
   const saveProgress = useCallback(() => {
@@ -146,6 +160,7 @@ function SolverView({ puzzle, initialFill, onBack }) {
 
   const handleSolverKeyDown = useCallback(
     (e, r, c) => {
+      if (showCompletion) return
       const idx = solverCellOrder.findIndex(([rr, cc]) => rr === r && cc === c)
       if (idx < 0) return
       const key = e.key
@@ -161,21 +176,23 @@ function SolverView({ puzzle, initialFill, onBack }) {
         focusSolverCell(prevIdx)
       }
     },
-    [solverCellOrder, setCell, focusSolverCell]
+    [showCompletion, solverCellOrder, setCell, focusSolverCell]
   )
 
   const acrostic = Boolean(puzzle.acrostic)
 
+  const showPauseOverlay = paused && !showCompletion
+
   return (
-    <div className={`solver-view ${paused ? 'solver-paused' : ''}`}>
-      {paused && (
+    <div className={`solver-view ${showPauseOverlay ? 'solver-paused' : ''}`}>
+      {showPauseOverlay && (
         <div className="solver-pause-overlay" aria-hidden="true" />
       )}
       {modalMessage && (
-        <div className="solver-modal-overlay" onClick={() => { setModalMessage(null); setPaused(false); }}>
+        <div className="solver-modal-overlay" onClick={() => { setModalMessage(null); if (!showCompletion) setPaused(false); }}>
           <div className="solver-modal" onClick={(e) => e.stopPropagation()}>
             <p>{modalMessage}</p>
-            <button type="button" onClick={() => { setModalMessage(null); setPaused(false); }}>OK</button>
+            <button type="button" onClick={() => { setModalMessage(null); if (!showCompletion) setPaused(false); }}>OK</button>
           </div>
         </div>
       )}
@@ -186,11 +203,17 @@ function SolverView({ puzzle, initialFill, onBack }) {
         <h1>{puzzle.title ? `${puzzle.title} — Solver` : 'Mini Crossword — Solver'}</h1>
         <div className="solver-timer">
           <span className="timer-display">{formatTime(elapsedSeconds)}</span>
-          <button type="button" className="timer-pause-btn" onClick={() => setPaused((p) => !p)}>
-            {paused ? 'Resume' : 'Pause'}
-          </button>
+          {!showCompletion && (
+            <button type="button" className="timer-pause-btn" onClick={() => setPaused((p) => !p)}>
+              {paused ? 'Resume' : 'Pause'}
+            </button>
+          )}
         </div>
       </header>
+
+      {puzzle.blurb && (
+        <p className="puzzle-blurb">{puzzle.blurb}</p>
+      )}
 
       <div className="solver-layout">
         <section className="section">
@@ -225,6 +248,8 @@ function SolverView({ puzzle, initialFill, onBack }) {
                         className="solver-input solver-cell-input"
                         onChange={(e) => setCell(r, c, e.target.value)}
                         onKeyDown={(e) => handleSolverKeyDown(e, r, c)}
+                        readOnly={showCompletion}
+                        aria-readonly={showCompletion}
                       />
                     </div>
                   )
@@ -247,10 +272,19 @@ function SolverView({ puzzle, initialFill, onBack }) {
                     <span className="clue-text">{puzzle.clues[key] || '—'}</span>
                     <button
                       type="button"
-                      className="reveal-word-btn"
+                      className="reveal-word-icon-btn"
                       onClick={() => revealWord(w)}
+                      title="Reveal Word"
+                      aria-label="Reveal Word"
+                      disabled={showCompletion}
                     >
-                      Reveal
+                      <span className="reveal-icon" aria-hidden>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M9 18h6" />
+                          <path d="M10 22h4" />
+                          <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.91 3.5A4.65 4.65 0 0 1 8.91 14" />
+                        </svg>
+                      </span>
                     </button>
                   </div>
                 )
@@ -261,16 +295,25 @@ function SolverView({ puzzle, initialFill, onBack }) {
                 <h3>Down</h3>
                 {downWords.map((w) => {
                   const key = wordKey(w.number, 'down')
-                  return (
+                    return (
                     <div key={key} className="clue-row solver-clue-row">
                       <span className="clue-num">{w.number}.</span>
                       <span className="clue-text">{puzzle.clues[key] || '—'}</span>
                       <button
                         type="button"
-                        className="reveal-word-btn"
+                        className="reveal-word-icon-btn"
                         onClick={() => revealWord(w)}
+                        title="Reveal Word"
+                        aria-label="Reveal Word"
+                        disabled={showCompletion}
                       >
-                        Reveal
+                        <span className="reveal-icon" aria-hidden>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M9 18h6" />
+                          <path d="M10 22h4" />
+                          <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.91 3.5A4.65 4.65 0 0 1 8.91 14" />
+                        </svg>
+                      </span>
                       </button>
                     </div>
                   )
@@ -282,15 +325,19 @@ function SolverView({ puzzle, initialFill, onBack }) {
       </div>
 
       <section className="section actions">
-        <button type="button" onClick={check}>
-          Check
-        </button>
-        <button type="button" onClick={revealAll}>
-          Reveal all
-        </button>
-        <button type="button" onClick={saveProgress}>
-          Save progress
-        </button>
+        {!showCompletion && (
+          <>
+            <button type="button" onClick={check}>
+              Check
+            </button>
+            <button type="button" onClick={revealAll}>
+              Reveal all
+            </button>
+            <button type="button" onClick={saveProgress}>
+              Save progress
+            </button>
+          </>
+        )}
         {saveStatus && <span className="status">{saveStatus}</span>}
         {loadError && <span className="error">{loadError}</span>}
       </section>
@@ -308,15 +355,49 @@ function formatListDate(isoString) {
   }
 }
 
+function sortPuzzles(list, sortKey, sortAsc) {
+  const arr = [...list]
+  arr.sort((a, b) => {
+    let va, vb
+    switch (sortKey) {
+      case 'title':
+        va = (a.title || 'Untitled').toLowerCase()
+        vb = (b.title || 'Untitled').toLowerCase()
+        return sortAsc ? (va < vb ? -1 : va > vb ? 1 : 0) : (vb < va ? -1 : vb > va ? 1 : 0)
+      case 'gridSize':
+        va = (a.rows || 0) * 100 + (a.cols || 0)
+        vb = (b.rows || 0) * 100 + (b.cols || 0)
+        return sortAsc ? va - vb : vb - va
+      case 'acrostic':
+        va = a.acrostic ? 1 : 0
+        vb = b.acrostic ? 1 : 0
+        return sortAsc ? va - vb : vb - va
+      case 'author':
+        va = (a.creator || 'Anonymous').toLowerCase()
+        vb = (b.creator || 'Anonymous').toLowerCase()
+        return sortAsc ? (va < vb ? -1 : va > vb ? 1 : 0) : (vb < va ? -1 : vb > va ? 1 : 0)
+      case 'date':
+        va = new Date(a.created_at || 0).getTime()
+        vb = new Date(b.created_at || 0).getTime()
+        return sortAsc ? va - vb : vb - va
+      default:
+        return 0
+    }
+  })
+  return arr
+}
+
 function SolverLanding({ onLoaded, onBack, loadError: propLoadError = '', onClearLoadError }) {
   const [loadError, setLoadError] = useState('')
   const [puzzleList, setPuzzleList] = useState([])
   const [listLoadError, setListLoadError] = useState('')
+  const [sortKey, setSortKey] = useState('date')
+  const [sortAsc, setSortAsc] = useState(false)
 
   useEffect(() => {
     listPuzzles().then(({ data, error }) => {
       if (error) {
-        setListLoadError('Could not load puzzles.')
+        setListLoadError(error?.message || 'Could not load puzzles.')
         return
       }
       setPuzzleList(data || [])
@@ -337,35 +418,17 @@ function SolverLanding({ onLoaded, onBack, loadError: propLoadError = '', onClea
     })
   }, [onLoaded, onClearLoadError])
 
-  const loadSaved = useCallback(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY_PROGRESS)
-      if (!raw) {
-        setLoadError('No saved progress found.')
-        return
-      }
-      const { encoded, fill: savedFill } = JSON.parse(raw)
-      const p = decodePuzzle(encoded)
-      if (!p) {
-        setLoadError('Could not load saved puzzle.')
-        return
-      }
-      const rows = p.grid.length
-      const cols = p.grid[0].length
-      const fill =
-        Array.isArray(savedFill) &&
-        savedFill.length === rows &&
-        savedFill[0]?.length === cols
-          ? savedFill
-          : null
-      setLoadError('')
-      onLoaded(p, fill)
-    } catch {
-      setLoadError('Could not load saved progress.')
-    }
-  }, [onLoaded])
-
   const displayError = propLoadError || loadError
+
+  const sortedList = useMemo(
+    () => sortPuzzles(puzzleList, sortKey, sortAsc),
+    [puzzleList, sortKey, sortAsc]
+  )
+
+  const toggleSort = useCallback((key) => {
+    setSortKey(key)
+    setSortAsc((prev) => (key === sortKey ? !prev : true))
+  }, [sortKey])
 
   return (
     <div className="solver-view">
@@ -376,34 +439,66 @@ function SolverLanding({ onLoaded, onBack, loadError: propLoadError = '', onClea
         <h1>Mini Crossword — Solver</h1>
       </header>
       <section className="section">
-        <h2>Choose a puzzle</h2>
         <p className="hint">
-          Click a puzzle title to play, or load saved progress.
+          Click a puzzle title to play.
         </p>
         {listLoadError && <span className="error">{listLoadError}</span>}
         {puzzleList.length > 0 && (
           <div className="puzzle-list-page">
-            <ul className="puzzle-list-detail">
-              {puzzleList.map((p) => (
-                <li key={p.id} className="puzzle-list-item">
-                  <button
-                    type="button"
-                    className="puzzle-list-title-btn"
-                    onClick={() => loadFromDbId(p.id)}
-                  >
-                    {p.title || 'Untitled'}
-                  </button>
-                  <span className="puzzle-list-meta">
-                    {[p.rows && p.cols ? `${p.rows}×${p.cols}` : null, p.creator || 'Anonymous', formatListDate(p.created_at)].filter(Boolean).join(' · ')}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <table className="puzzle-list-table">
+              <thead>
+                <tr>
+                  <th>
+                    <button type="button" className="sortable-th" onClick={() => toggleSort('title')}>
+                      Title {sortKey === 'title' && (sortAsc ? '↑' : '↓')}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="sortable-th" onClick={() => toggleSort('gridSize')}>
+                      Grid size {sortKey === 'gridSize' && (sortAsc ? '↑' : '↓')}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="sortable-th" onClick={() => toggleSort('acrostic')}>
+                      Acrostic {sortKey === 'acrostic' && (sortAsc ? '↑' : '↓')}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="sortable-th" onClick={() => toggleSort('author')}>
+                      Author {sortKey === 'author' && (sortAsc ? '↑' : '↓')}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="sortable-th" onClick={() => toggleSort('date')}>
+                      Date created {sortKey === 'date' && (sortAsc ? '↑' : '↓')}
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedList.length === 0 ? (
+                  <tr><td colSpan={5} className="puzzle-list-empty">No puzzles.</td></tr>
+                ) : sortedList.map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      <button
+                        type="button"
+                        className="puzzle-list-title-btn"
+                        onClick={() => loadFromDbId(p.id)}
+                      >
+                        {p.title || 'Untitled'}
+                      </button>
+                    </td>
+                    <td>{p.rows != null && p.cols != null ? `${p.rows}×${p.cols}` : '—'}</td>
+                    <td>{p.acrostic ? '✓' : '—'}</td>
+                    <td>{p.creator || 'Anonymous'}</td>
+                    <td>{formatListDate(p.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-        <button type="button" onClick={loadSaved} className="load-saved-btn">
-          Load saved progress
-        </button>
         {displayError && (
           <span className="error">
             {displayError}

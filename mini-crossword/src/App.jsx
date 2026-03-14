@@ -12,15 +12,12 @@ import {
   buildLettersFromAnswers,
 } from './utils/puzzle'
 import { listPuzzles, getPuzzle, createPuzzle, updatePuzzle } from './api/db'
-import html2canvas from 'html2canvas'
 import { SolverView, SolverLanding } from './SolverView'
 import './App.css'
 
 const DEFAULT_SIZE = 5
 const STORAGE_KEY = 'mini-crossword-draft'
 const STORAGE_KEY_PROGRESS = 'mini-crossword-solver-progress'
-const STORAGE_KEY_EXPORTED_URLS = 'mini-crossword-exported-urls'
-const MAX_EXPORTED_URLS = 20
 
 function App() {
   const [mode, setMode] = useState('home')
@@ -34,16 +31,17 @@ function App() {
   const [letters, setLetters] = useState(() => createEmptyFill(DEFAULT_SIZE, DEFAULT_SIZE))
   const [clues, setClues] = useState({})
   const [title, setTitle] = useState('')
+  const [blurb, setBlurb] = useState('')
   const [isAcrostic, setIsAcrostic] = useState(false)
   const [copyStatus, setCopyStatus] = useState('')
   const [loadError, setLoadError] = useState('')
-  const [imageParse, setImageParse] = useState(null)
 
   const [puzzleId, setPuzzleId] = useState(null)
   const [creatorName, setCreatorName] = useState('')
   const [puzzleList, setPuzzleList] = useState([])
   const [listLoadError, setListLoadError] = useState('')
   const [dbSaveStatus, setDbSaveStatus] = useState('')
+  const [saveConfirmPending, setSaveConfirmPending] = useState(null)
 
   const { words, numberAt } = getWordsFromGrid(grid)
   const validation = validateGrid(grid)
@@ -121,10 +119,10 @@ function App() {
   )
 
   const saveToBrowser = useCallback(() => {
-    const payload = { rows, cols, grid, clues, answers: answersFromLetters, title, acrostic: isAcrostic }
+    const payload = { rows, cols, grid, clues, answers: answersFromLetters, title, blurb, acrostic: isAcrostic }
     localStorage.setItem(STORAGE_KEY, encodePuzzle(payload))
     setLoadError('')
-  }, [rows, cols, grid, clues, answersFromLetters, title, isAcrostic])
+  }, [rows, cols, grid, clues, answersFromLetters, title, blurb, isAcrostic])
 
   const loadFromBrowser = useCallback(() => {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -144,30 +142,10 @@ function App() {
     setLetters(buildLettersFromAnswers(p.rows, p.cols, p.grid, p.answers || {}, loadWords))
     setClues(p.clues || {})
     setTitle(p.title || '')
+    setBlurb(p.blurb != null ? String(p.blurb) : '')
     setIsAcrostic(Boolean(p.acrostic))
     setLoadError('')
   }, [])
-
-  const copyLink = useCallback(() => {
-    const payload = { rows, cols, grid, clues, answers: answersFromLetters, title, acrostic: isAcrostic }
-    const encoded = encodePuzzle(payload)
-    const url = `${window.location.origin}${window.location.pathname}?puzzle=${encoded}`
-    try {
-      const list = JSON.parse(localStorage.getItem(STORAGE_KEY_EXPORTED_URLS) || '[]')
-      list.unshift({ url, title: title || 'Puzzle', ts: Date.now() })
-      localStorage.setItem(STORAGE_KEY_EXPORTED_URLS, JSON.stringify(list.slice(0, MAX_EXPORTED_URLS)))
-    } catch (_) {}
-    navigator.clipboard.writeText(url).then(
-      () => {
-        setCopyStatus('Link copied to clipboard.')
-        setTimeout(() => setCopyStatus(''), 2000)
-      },
-      () => {
-        setCopyStatus('Failed to copy.')
-        setTimeout(() => setCopyStatus(''), 2000)
-      }
-    )
-  }, [rows, cols, grid, clues, answersFromLetters, title, isAcrostic])
 
   const copyLinkById = useCallback(() => {
     if (!puzzleId) return
@@ -188,7 +166,7 @@ function App() {
     // #region agent log
     const _logB={location:'App.jsx:saveToDb',message:'saveToDb entry',data:{validationValid:validation.valid,puzzleId:!!puzzleId,isUpdate:!!puzzleId},hypothesisId:'B'};console.log('[debug]',_logB);fetch('http://127.0.0.1:7242/ingest/d7d9864e-0ba4-41cc-8345-b48e79c76a56',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({..._logB,timestamp:Date.now()})}).catch(()=>{});
     // #endregion
-    if (!validation.valid) return
+    if (!validation.valid) return false
     setLoadError('')
     setDbSaveStatus('')
     const payload = {
@@ -198,6 +176,7 @@ function App() {
       clues,
       answers: answersFromLetters,
       title: title || '',
+      blurb: blurb != null ? String(blurb) : '',
       acrostic: isAcrostic,
       creator: (creatorName || '').trim().slice(0, 50) || undefined,
     }
@@ -207,39 +186,34 @@ function App() {
       const _logC={location:'App.jsx:saveToDb',message:'updatePuzzle result',data:{hasError:!!error,errorMessage:error?.message,errorCode:error?.code},hypothesisId:'C'};console.log('[debug]',_logC);fetch('http://127.0.0.1:7242/ingest/d7d9864e-0ba4-41cc-8345-b48e79c76a56',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({..._logC,timestamp:Date.now()})}).catch(()=>{});
       // #endregion
       if (error) {
-        setLoadError('Could not save. Check connection and try again.')
-        return
+        const msg = error?.message || 'Could not save. Check connection and try again.'
+        setLoadError(msg)
+        console.error('[save] updatePuzzle error:', error?.message, error?.code, error?.details)
+        return false
       }
       setDbSaveStatus('Saved.')
       setTimeout(() => setDbSaveStatus(''), 3000)
+      listPuzzles().then(({ data: list }) => setPuzzleList(list || []))
+      return true
     } else {
       const { data, error } = await createPuzzle(payload)
       // #region agent log
       const _logD={location:'App.jsx:saveToDb',message:'createPuzzle result',data:{hasError:!!error,errorMessage:error?.message,errorCode:error?.code,supabaseDetails:error?.details},hypothesisId:'C'};console.log('[debug]',_logD);fetch('http://127.0.0.1:7242/ingest/d7d9864e-0ba4-41cc-8345-b48e79c76a56',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({..._logD,timestamp:Date.now()})}).catch(()=>{});
       // #endregion
       if (error) {
-        setLoadError('Could not save. Check connection and try again.')
-        return
+        const msg = error?.message || 'Could not save. Check connection and try again.'
+        setLoadError(msg)
+        console.error('[save] createPuzzle error:', error?.message, error?.code, error?.details)
+        return false
       }
       setPuzzleId(data.id)
       setDbSaveStatus('Saved.')
       setTimeout(() => setDbSaveStatus(''), 3000)
       window.history.replaceState(null, '', `${window.location.pathname}?edit=${data.id}`)
       listPuzzles().then(({ data: list }) => setPuzzleList(list || []))
+      return true
     }
-  }, [puzzleId, rows, cols, grid, clues, answersFromLetters, title, isAcrostic, creatorName, validation.valid])
-
-  const exportImage = useCallback(() => {
-    const el = document.getElementById('export-area')
-    if (!el) return
-    const filename = (title || 'mini-crossword').replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 50) + '.JPG'
-    html2canvas(el, { scale: 2, useCORS: true }).then((canvas) => {
-      const link = document.createElement('a')
-      link.download = filename
-      link.href = canvas.toDataURL('image/jpeg', 0.92)
-      link.click()
-    })
-  }, [title])
+  }, [puzzleId, rows, cols, grid, clues, answersFromLetters, title, blurb, isAcrostic, creatorName, validation.valid])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -300,6 +274,7 @@ function App() {
         setLetters(buildLettersFromAnswers(data.rows, data.cols, data.grid, data.answers || {}, words))
         setClues(data.clues || {})
         setTitle(data.title || '')
+        setBlurb(data.blurb != null ? String(data.blurb) : '')
         setIsAcrostic(Boolean(data.acrostic))
         setPuzzleId(data.id)
         setCreatorName(data.creator || '')
@@ -326,13 +301,27 @@ function App() {
     if (mode !== 'creator') return
     listPuzzles().then(({ data, error }) => {
       if (error) {
-        setListLoadError('Could not load puzzles.')
+        setListLoadError(error?.message || 'Could not load puzzles.')
         return
       }
       setPuzzleList(data || [])
       setListLoadError('')
     })
   }, [mode])
+
+  const startNewPuzzle = useCallback(() => {
+    setPuzzleId(null)
+    setRows(DEFAULT_SIZE)
+    setCols(DEFAULT_SIZE)
+    setGrid(createEmptyGrid(DEFAULT_SIZE, DEFAULT_SIZE))
+    setLetters(createEmptyFill(DEFAULT_SIZE, DEFAULT_SIZE))
+    setClues({})
+    setTitle('')
+    setBlurb('')
+    setIsAcrostic(false)
+    setLoadError('')
+    window.history.replaceState(null, '', window.location.pathname)
+  }, [])
 
   const loadPuzzleForEdit = useCallback((id) => {
     setLoadError('')
@@ -348,6 +337,7 @@ function App() {
       setLetters(buildLettersFromAnswers(data.rows, data.cols, data.grid, data.answers || {}, words))
       setClues(data.clues || {})
       setTitle(data.title || '')
+      setBlurb(data.blurb != null ? String(data.blurb) : '')
       setIsAcrostic(Boolean(data.acrostic))
       setPuzzleId(data.id)
       setCreatorName(data.creator || '')
@@ -356,48 +346,37 @@ function App() {
     })
   }, [])
 
-  const handleImageSelect = useCallback((e) => {
-    const file = e.target?.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setImageParse({ dataUrl: reader.result, rows: rows, cols: cols })
-    reader.readAsDataURL(file)
-    e.target.value = ''
-  }, [rows, cols])
-
-  const parseImageWithOCR = useCallback(async () => {
-    if (!imageParse?.dataUrl) return
-    setLoadError('Running OCR…')
-    try {
-      const Tesseract = (await import('tesseract.js')).default
-      const { data: { text } } = await Tesseract.recognize(imageParse.dataUrl, 'eng', { logger: () => {} })
-      const lettersOnly = (text || '').replace(/[^A-Za-z]/g, '').toUpperCase()
-      const R = Math.max(1, Number(imageParse.rows) || DEFAULT_SIZE)
-      const C = Math.max(1, Number(imageParse.cols) || DEFAULT_SIZE)
-      const newGrid = createEmptyGrid(R, C)
-      const newLetters = createEmptyFill(R, C)
-      let idx = 0
-      for (let r = 0; r < R; r++) {
-        for (let c = 0; c < C; c++) {
-          if (idx < lettersOnly.length) newLetters[r][c] = lettersOnly[idx++]
-        }
-      }
-      setRows(R)
-      setCols(C)
-      setGrid(newGrid)
-      setLetters(newLetters)
-      setClues({})
-      setImageParse(null)
-      setLoadError('')
-    } catch (err) {
-      setLoadError('Could not parse image. Try a clearer photo.')
-    }
-  }, [imageParse])
-
-  const cancelImageParse = useCallback(() => {
-    setImageParse(null)
-    setLoadError('')
+  const handleNewPuzzle = useCallback(() => {
+    setSaveConfirmPending('new')
   }, [])
+
+  const handleSaveConfirmNo = useCallback(() => {
+    const pending = saveConfirmPending
+    setSaveConfirmPending(null)
+    if (pending === 'new') {
+      startNewPuzzle()
+    } else if (typeof pending === 'string') {
+      loadPuzzleForEdit(pending)
+    }
+  }, [saveConfirmPending, startNewPuzzle, loadPuzzleForEdit])
+
+  const handleSaveConfirmYes = useCallback(async () => {
+    const pending = saveConfirmPending
+    const ok = await saveToDb()
+    if (ok) {
+      setSaveConfirmPending(null)
+      if (pending === 'new') {
+        startNewPuzzle()
+      } else if (typeof pending === 'string') {
+        loadPuzzleForEdit(pending)
+      }
+    }
+  }, [saveConfirmPending, saveToDb, startNewPuzzle, loadPuzzleForEdit])
+
+  const handlePuzzleSelect = useCallback((id) => {
+    if (id === puzzleId) return
+    setSaveConfirmPending(id)
+  }, [puzzleId])
 
   const acrossWords = words.filter((w) => w.direction === 'across')
   const downWords = words.filter((w) => w.direction === 'down')
@@ -460,6 +439,22 @@ function App() {
 
   return (
     <div className="app">
+      {saveConfirmPending != null && (
+        <div className="creator-save-modal-overlay" onClick={() => setSaveConfirmPending(null)}>
+          <div className="creator-save-modal" onClick={(e) => e.stopPropagation()}>
+            <p className="creator-save-modal-message">Save current puzzle to the database?</p>
+            <div className="creator-save-modal-buttons">
+              <button type="button" onClick={handleSaveConfirmNo}>
+                No
+              </button>
+              <button type="button" onClick={handleSaveConfirmYes}>
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="header">
         <button type="button" className="nav-link" onClick={goToHome}>
           ← Home
@@ -475,12 +470,21 @@ function App() {
           <h2>Puzzles</h2>
           {listLoadError && <p className="error">{listLoadError}</p>}
           <ul className="puzzle-list">
+            <li>
+              <button
+                type="button"
+                className="puzzle-list-btn puzzle-list-btn-new"
+                onClick={handleNewPuzzle}
+              >
+                New...
+              </button>
+            </li>
             {puzzleList.map((p) => (
               <li key={p.id}>
                 <button
                   type="button"
                   className={`puzzle-list-btn ${puzzleId === p.id ? 'active' : ''}`}
-                  onClick={() => loadPuzzleForEdit(p.id)}
+                  onClick={() => handlePuzzleSelect(p.id)}
                 >
                   {p.title || 'Untitled'} {p.creator ? `— ${p.creator}` : ''}
                 </button>
@@ -527,6 +531,16 @@ function App() {
             onChange={(e) => setCreatorName(e.target.value)}
             placeholder="Anonymous"
             className="creator-name-input"
+          />
+        </label>
+        <label className="creator-blurb-row">
+          Puzzle blurb (optional, 3–4 sentences):{' '}
+          <textarea
+            value={blurb}
+            onChange={(e) => setBlurb(e.target.value)}
+            placeholder="Theme or instructions for solvers…"
+            className="creator-blurb-input"
+            rows={4}
           />
         </label>
       </section>
@@ -677,64 +691,15 @@ function App() {
         <button type="button" onClick={loadFromBrowser}>
           Load saved
         </button>
-        <label className="file-label">
-          Load from image
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/jpg"
-            onChange={handleImageSelect}
-            className="file-input"
-          />
-        </label>
-        {imageParse && (
-          <div className="image-parse-box">
-            <label>Rows: <input type="number" min={1} max={15} value={imageParse.rows} onChange={(e) => setImageParse((p) => p ? { ...p, rows: Number(e.target.value) || p.rows } : null)} /></label>
-            <label>Cols: <input type="number" min={1} max={15} value={imageParse.cols} onChange={(e) => setImageParse((p) => p ? { ...p, cols: Number(e.target.value) || p.cols } : null)} /></label>
-            <button type="button" onClick={parseImageWithOCR}>Parse image</button>
-            <button type="button" onClick={cancelImageParse}>Cancel</button>
-          </div>
-        )}
-        <button type="button" onClick={copyLink}>
-          Copy link (encoded)
-        </button>
         {puzzleId && (
           <button type="button" onClick={copyLinkById}>
             Copy link (by ID)
           </button>
         )}
         {copyStatus && <span className="status">{copyStatus}</span>}
-        <button type="button" onClick={exportImage}>
-          Export as JPG
-        </button>
         {loadError && <span className="error">{loadError}</span>}
       </section>
 
-      <div id="export-area" className="export-area" aria-hidden="true">
-        {title && <div className="export-title">{title}</div>}
-        <div className="export-grid" style={{ '--rows': rows, '--cols': cols }}>
-          {grid.map((row, r) =>
-              row.map((black, c) => {
-              const num = isAcrostic
-                ? (acrossWords.some((w) => w.startRow === r && w.startCol === c) ? numberAt(r, c) : null)
-                : numberAt(r, c)
-              const letter = !black ? (letters[r][c] || '').toUpperCase() : ''
-              return (
-                <div
-                  key={`${r}-${c}`}
-                  className={`export-cell ${black ? 'black' : 'white'}`}
-                >
-                  {!black && (
-                    <>
-                      {num != null && <span className="export-num">{num}</span>}
-                      <span className="export-letter">{letter}</span>
-                    </>
-                  )}
-                </div>
-              )
-            })
-          )}
-        </div>
-      </div>
         </main>
       </div>
     </div>

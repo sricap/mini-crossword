@@ -38,13 +38,11 @@ When the app is launched, take the user to a browser URL and ask whether to Crea
 - **Order:** How are across/down clues ordered? The standard way. i.e., 
     = across clues are numbered starting from the top left corner and scanning each row from left to right for the start of a new word.
     = down cluses are also numbers based on such a scan of cells.
-    = be sure to number only across clues for *Acrostic* mode
+- **Order for Acrostic Mode:**  For Acrostic mode, only the across words are numbered because the Down words are the same as Across words, and have no clues associated with them.
+    = **Reset the clue numbering** to only number Across words, each time **Acrostic mode is turned ON**. Reset it to include Down clues and numbers when **Acrostic mode is turned OFF**.
 ### Data & persistence
 - **Save session:** Save intermediate creator draft (grid, clues, title, etc.) in the browser (e.g. localStorage) so the creator can resume later without DB.
-- **Save puzzle:** Save the Creator's final version into a database, as detailed in that section.
-- **Export For Solver:** Export puzzle as a URL that loads the title, grid and clues for a solving session. 
-- **Export For Creator:** Provide an option to export the creator page as a JPG. Use the title of the Puzzle as the file name to export to, with .JPG extension.
-- **Load from Image:** Allow users to upload a JPG or PNG exported by above, for creators. Parse it to auto-fill into a new Creator view that can be edited and exported for solvers.
+- **Save puzzle:** Save the Creator's final version into a database, as detailed in that section. When puzzle is saved, if the title or Creator name has changed, refresh the left pane to show the new title in place of the old one.
 
 ### Acrostic Mode
 An Acrostic is a puzzle where the horizontal and vertical words are the same. It is a square NxN grid with N words of the same length (N), often with no black squares.
@@ -56,10 +54,15 @@ An Acrostic is a puzzle where the horizontal and vertical words are the same. It
 ### Puzzle Title
 - Provide a text box of length 25 characters (make it wide enough) for the creator to type a puzzle name
 
+### Puzzle Blurb
+- Provide a text area to allow 3-4 sentences to be typed as optional instructions for the puzzle. For example, if the puzzle is themed, this is where the author would call it out. It should be displayed in the solver mode under the title.
+
 ### UI/UX for creator
 - Layout: single page
-- Left Pane: List of all the puzzles available in the database, with hyperlinks.
-- Main Panel: Creator view with grid, clues, and buttons to load/save/export.
+- Left Pane: At the **top** of the list, show a **"New..."** item. Clicking it opens an **in-app modal** (no browser dialog title such as "localhost says"). The modal shows only the message **"Save current puzzle to the database?"** with two buttons: **No** and **Yes**. **No** does not save; it switches to a blank new puzzle. **Yes** saves the current puzzle (create or update) to the database, then switches to a blank new puzzle. Below "New...", list all the puzzles from the database with hyperlinks.
+- When the user clicks **any other puzzle** in the left pane (to switch to it), show the same in-app modal: "Save current puzzle to the database?" with **No** and **Yes**. **No** switches to the selected puzzle without saving the current edits. **Yes** saves the current puzzle to the database, then loads the selected puzzle.
+- Main Panel: Creator view with grid, clues, and buttons to load/save
+- **Excluded from Creator:** Do not include these buttons: Load from image, Copy link (encoded), Export as JPG.
 
 ---
 
@@ -69,8 +72,29 @@ An Acrostic is a puzzle where the horizontal and vertical words are the same. It
 - View the puzzle grid and clues; type answers in cells; check answers and reveal as needed; resume later from saved progress.
 
 ### Flow
-- **Puzzle List Page:** Solver will see a list of puzzles from the database as the default view (when "Solve" is picked in the main page). They can click on a puzzle link to load that puzzle. This will update the URL accordingly, to a link that can directly load the puzzle if copy/pasted to another browser session.
-- **Puzzle Page:** Solver will get to this from above. They can also get to this from a **link** derived from a creator link (open URL with `?puzzle=...` from creator's "Copy link").
+- **Puzzle List Page:** Solver will see a list of puzzles from the database as the default view (when "Solve" is picked in the main page). They should click on a puzzle link to load that puzzle.
+- **Puzzle Page:** Solver will get to this from above.
+
+### Puzzle list page details
+- Do not show a "Choose a puzzle" heading. Show only the hint text (e.g. "Click a puzzle title to play.").
+- Show the title, grid size, whether acrostic (check mark or 'x'), author, and date created as a table.
+- The title is clickable and leads to the puzzle page.
+- Allow sorting by each column (Title, Grid size, Acrostic, Author, Date created) via a clickable column header (sort / reverse sort indicator).
+- Do not provide a filter by author (or other fields) on the puzzle list.
+
+### Puzzle Page details
+
+### Grid
+- The grid should look exactly like the empty grid that the Creator page, with clue numbers.  No "cell border" within the grid square.
+- Each white cell is one **text input** (one letter). User types in cells; input is uppercase. 
+- The look-and-feel of the grid is similar to the Creator view.
+
+
+### Input and Transitions    
+- When a letter is typed, moved to the next letter square in that word.
+- If the last letter of a word is typed, move to the next row. Cycle to the first row after the last one.
+- One letter per cell; same cell shares its letter for across and down.
+
 
 ### Active clue transitions
 - **Start:** The puzzle starts with an **"active clue"**, which starts with the 1 Across. The "active word" is also 1 Across, but in the grid.
@@ -85,28 +109,23 @@ An Acrostic is a puzzle where the horizontal and vertical words are the same. It
     = Be sure to transition the **highlights** for cell, row/column, and clue, every time the user clicks a new cell or types a letter in the current cell, forcing a transition.
     = **Space Bar** will transition the active word from row to column (across to down) or column to row (down to across). The active cell will not change.
 
-### Grid & input
-- Show grid with clue numbers; each white cell is one **text input** (one letter). User types in cells; input is uppercase.
-- The look-and-feel of the grid is similar to the Creator view. Squares with numbers where a word starts. 
-    = For Acrostic mode, only the across words are numbered because the down words are the same and have no clues associated with them.
-    = **Reset the clue numbering** each time Acrostic mode is turned on/off.
-- When a letter is typed, moved to the next letter square in that word.
-- If the last letter of a word is typed, move to the next row. Cycle to the first row after the last one.
-- One letter per cell; same cell shares its letter for across and down.
-
 ### Timer
 - Show a timer with hours:minutes:seconds that ticks every second the solver page is open.
-- Provide a pause button to pause the timer. Grey out or blur out the screen when the timer is paused.
+- Provide a pause button to pause the timer. Grey out or blur the screen when the timer is **manually** paused.
 - Unpausing should resume the timer and resume solving mode.
+- Timer should permanently stop when the grid is solved (by Check or by completion after Reveal). Do **not** blur the screen when the puzzle is completed (e.g. after "Reveal all" or after the last word is revealed and the grid is correct).
 
 ### Check & reveal
-- **Completion:** When all letters are filled, display a banner with the "success message" or "not-there-yet message" (see below) and pause the timer. Resume progress when user dismisses the message:
-    = **success message:** "Congratulations! You solved it in 'X'!". 'X' should the actual minutes and seconds the user took to solve. examples "...in 13 seconds!" or "...in 1 minute 10 seconds!".
+- **Completion:** Whenever the grid is **fully filled and all answers are correct**, show the **completion popup** with the **success message** and stop the timer. This must happen (1) when the user **clicks "Check"** and the grid is correct, (2) when the user **types the last letter** and the grid becomes correct (auto-check on each fill change), and (3) when the user **reveals a word** and that was the last missing piece (grid full and correct). When the user **clicks "Check"** and at least one letter is wrong, show the **not-there-yet message** in the same popup style; they can dismiss and keep solving.
+    = **success message:** "Congratulations! You solved it in 'X'!". 'X' should be the actual minutes and seconds the user took to solve. examples "...in 13 seconds!" or "...in 1 minute 10 seconds!".
     = **not-there-yet message:** "Aw, snap! At least one square does not have the right letter. Try again!"
-- **Check Square:** Button "Check Square" compares the letter in the selected/active square to the correct letter.
-    = If wrong, it **highlights the incorrect letter** by changing the letter colors to RED.
-    = If correct, it **highlights the correct letter** by changing the letter colors to BLUE
-- **Reveal word:** For each clue there is a "Reveal" control that fills in the **correct answer** for that word only. The revealed letters should be in GREEN, to indicated that they were revealed and not solved.
+    = After the success message is shown and dismissed, the puzzle is considered finished (only Home clickable; no further edits).
+- **Reveal all:** Clicking "Reveal all" fills in all answers and stops the timer. Do **not** blur the screen. The puzzle is then considered solved: only the **Home** button remains clickable; other action buttons (Check, Reveal all, Save progress, Pause/Resume) are disabled or hidden.
+- **Reveal word:** For each clue there is a "Reveal Control" that fills in the **correct answer** for that word only. The revealed letters should be in GREEN, to indicate that they were revealed and not solved.
+- **Reveal Control:** Provide a small clickable "reveal" icon next to the clue, that will reveal the answer when clicked. When the mouse hovers over it, show the tool tip "Reveal Word".
+- **After revealing a word:** Run a check to see if the puzzle is solved.
+    = **a/** If the grid is not full (one or more empty squares), simply continue.
+    = **b/** If the grid is full (no empty squares), treat as completion: show the success message, stop the timer, and consider the puzzle solved (only Home clickable), as in the Completion section.
 
 ### Progress & completion
 - **Save progress:** Solver **saves progress in the browser** (localStorage): current puzzle + user's fill. One "saved game" slot; loading "saved" restores that puzzle and fill.
@@ -115,7 +134,8 @@ An Acrostic is a puzzle where the horizontal and vertical words are the same. It
 ### UI/UX for solver
 ### Layout
 - *Title* on top 
-- *Grid* below Title
+- *Puzzle Blurb* below that
+- *Grid* below that
 - *Clues* below Grid, Across Clues on left. Down Clues on right. *Acrostic* will have only Across Clues. *Reveal* button next to each clue.
 - *Action Buttons*: All other buttons at the bottom. eg., Check Square, Home, Save Progress, Pause/Resume Timer.
 
@@ -139,8 +159,9 @@ This section details where and how the puzzles are stored, for retrieval by Crea
 
 ### URLs and links
 - **Solver – load from list:** When solver clicks a puzzle in the list, open the puzzle at a URL that identifies it by DB id, e.g. `?id=<uuid>` or `?puzzle=<uuid>`. The app then fetches the full puzzle from the DB and displays the solver view. The URL is shareable (opening it in a new session loads the puzzle from DB).
+NOTE: There should be no "load saved progress" button below the table of puzzles.
 - **Creator – edit from list:** When creator clicks a puzzle in the left pane, open the creator view for that puzzle, e.g. `?edit=<id>`. App fetches puzzle by id and fills grid, clues, title, acrostic. "Save" then performs update, not create.
-- **Copy link (Creator):** Can remain as today (encoded payload in `?puzzle=...`) for backward compatibility and for sharing without requiring DB. Optionally also offer "Copy link to puzzle" that uses the DB id URL (e.g. `?id=...`) so the solver loads from DB. Specify which behavior is default; the other can be "Copy link (encoded)" vs "Copy link (by ID)" if both are supported.
+- **Copy link (Creator):** Do not offer "Copy link (encoded)". Creator may offer "Copy link (by ID)" that uses the DB id URL (e.g. `?id=...`) so the solver loads from DB.
 
 ### Errors and offline
 - **Save failure:** If save (create or update) fails (network or server error), show a clear message (e.g. "Could not save. Check connection and try again.") and leave the creator view unchanged so the user can retry.
@@ -175,7 +196,9 @@ This section details where and how the puzzles are stored, for retrieval by Crea
 |-----------|-----|--------|
 | 2026-02-01| 0.1 | Initial spec; no db; local run |
 | 2026-02-18| 1.0 | save puzzle to db |
-| 2026-02-xx| 1.1 | Github + deployed to gcp |
+| 2026-02-xx| 1.1 | Project now on Github |
+| 2026-03-06| 1.2 | Project deployed on Vercel |
+| 2026-03-13| 1.2 | Various fixes and UI clean-ups |
 
 
 

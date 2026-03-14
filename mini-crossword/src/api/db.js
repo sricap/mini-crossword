@@ -34,6 +34,7 @@ function rowToPuzzle(row) {
         )
       : {},
     acrostic: Boolean(row.acrostic),
+    blurb: row.blurb != null ? String(row.blurb) : '',
   }
 }
 
@@ -46,7 +47,7 @@ export async function listPuzzles() {
   if (!supabase) return { data: [], error: new Error('Supabase not configured') }
   const { data, error } = await supabase
     .from('puzzles')
-    .select('id, title, creator, created_at, updated_at, rows, cols')
+    .select('id, title, creator, created_at, updated_at, rows, cols, acrostic, blurb')
     .order('updated_at', { ascending: false })
     .limit(LIST_LIMIT)
   if (error) return { data: [], error }
@@ -84,6 +85,7 @@ export async function createPuzzle(payload) {
     clues: payload.clues || {},
     answers: payload.answers || {},
     acrostic: Boolean(payload.acrostic),
+    blurb: payload.blurb != null ? String(payload.blurb) : '',
   }
   const { data, error } = await supabase.from('puzzles').insert(row).select().single()
   // #region agent log
@@ -112,6 +114,7 @@ export async function updatePuzzle(id, payload) {
     clues: payload.clues || {},
     answers: payload.answers || {},
     acrostic: Boolean(payload.acrostic),
+    blurb: payload.blurb != null ? String(payload.blurb) : '',
   }
   const { error } = await supabase.from('puzzles').update(update).eq('id', id)
   // #region agent log

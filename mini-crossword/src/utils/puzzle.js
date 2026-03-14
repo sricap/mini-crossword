@@ -115,6 +115,7 @@ export function encodePuzzle(puzzle) {
     ),
     title: puzzle.title != null ? String(puzzle.title).slice(0, 25) : '',
     acrostic: Boolean(puzzle.acrostic),
+    blurb: puzzle.blurb != null ? String(puzzle.blurb) : '',
   };
   return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
 }
@@ -140,6 +141,7 @@ export function decodePuzzle(encoded) {
       ),
       title: p.title != null ? String(p.title).slice(0, 25) : '',
       acrostic: Boolean(p.acrostic),
+      blurb: p.blurb != null ? String(p.blurb) : '',
     };
   } catch {
     return null;
