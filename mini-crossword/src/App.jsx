@@ -57,7 +57,10 @@ function App() {
   }, [isAcrostic])
 
   const handleToggleBlack = useCallback((e, r, c) => {
-    if (!e.shiftKey) return
+    const isShiftClick = e.shiftKey
+    const isSpaceKey = e.key === ' '
+    const isBlackCellClick = e.type === 'click' && e.target?.closest?.('.cell.black')
+    if (!isShiftClick && !isSpaceKey && !isBlackCellClick) return
     e.preventDefault()
     setGrid((prev) => toggleCellSymmetrically(prev, r, c))
   }, [])
@@ -552,23 +555,6 @@ function App() {
             className="title-input"
           />
         </label>
-        <label className="acrostic-row">
-          <input
-            type="checkbox"
-            checked={isAcrostic}
-            onChange={(e) => {
-              const checked = e.target.checked
-              setIsAcrostic(checked)
-              if (checked) {
-                setCols(rows)
-                setGrid(createEmptyGrid(rows, rows))
-                setLetters(createEmptyFill(rows, rows))
-                setClues({})
-              }
-            }}
-          />
-          Acrostic (same words across and down)
-        </label>
         <label className="creator-name-row">
           Creator:{' '}
           <input
@@ -594,28 +580,57 @@ function App() {
 
       <section className="section">
         <h2>Grid</h2>
+        <label className="acrostic-row grid-acrostic-row">
+          <input
+            type="checkbox"
+            checked={isAcrostic}
+            onChange={(e) => {
+              const checked = e.target.checked
+              setIsAcrostic(checked)
+              if (checked) {
+                setCols(rows)
+                setGrid(createEmptyGrid(rows, rows))
+                setLetters(createEmptyFill(rows, rows))
+                setClues({})
+              }
+            }}
+          />
+          Acrostic (same words across and down)
+        </label>
         <div className="size-row">
           <label>
             Rows:{' '}
-            <input
-              type="number"
-              min={3}
-              max={15}
-              value={rows}
-              onChange={(e) => handleResize(Number(e.target.value) || rows, cols)}
-            />
+            <span className="size-stepper">
+              <input
+                type="number"
+                min={3}
+                max={15}
+                value={rows}
+                onChange={(e) => handleResize(Number(e.target.value) || rows, cols)}
+                className="size-input"
+                aria-label="Rows"
+              />
+              <button type="button" className="size-step-btn" onClick={() => handleResize(Math.max(3, rows - 1), cols)} aria-label="Decrease rows">−</button>
+              <button type="button" className="size-step-btn" onClick={() => handleResize(Math.min(15, rows + 1), cols)} aria-label="Increase rows">+</button>
+            </span>
           </label>
           <label>
             Cols:{' '}
-            <input
-              type="number"
-              min={3}
-              max={15}
-              value={cols}
-              onChange={(e) => handleResize(rows, Number(e.target.value) || cols)}
-              disabled={isAcrostic}
-              title={isAcrostic ? 'Acrostic uses same value as rows' : ''}
-            />
+            <span className="size-stepper">
+              <input
+                type="number"
+                min={3}
+                max={15}
+                value={cols}
+                onChange={(e) => handleResize(rows, Number(e.target.value) || cols)}
+                className="size-input"
+                disabled={isAcrostic}
+                title={isAcrostic ? 'Acrostic uses same value as rows' : ''}
+                aria-label="Columns"
+              />
+              <button type="button" className="size-step-btn" onClick={() => handleResize(rows, Math.max(3, cols - 1))} aria-label="Decrease columns" disabled={isAcrostic}>−</button>
+              <button type="button" className="size-step-btn" onClick={() => handleResize(rows, Math.min(15, cols + 1))} aria-label="Increase columns" disabled={isAcrostic}>+</button>
+            </span>
           </label>
         </div>
         <p className="hint">
