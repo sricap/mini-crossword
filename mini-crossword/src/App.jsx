@@ -148,7 +148,32 @@ function App() {
 
   const focusCell = useCallback((index) => {
     const el = document.querySelector(`.creator-cell-input[data-index="${index}"]`)
-    if (el) el.focus()
+    if (!el) return
+    el.focus()
+    const len = (el.value || '').length
+    requestAnimationFrame(() => {
+      try {
+        el.setSelectionRange(len, len)
+      } catch (_) {
+        /* ignore */
+      }
+    })
+  }, [])
+
+  const snapCreatorCaretToEnd = useCallback((e) => {
+    const el = e.currentTarget
+    const place = () => {
+      const len = (el.value || '').length
+      try {
+        el.setSelectionRange(len, len)
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    requestAnimationFrame(() => {
+      place()
+      requestAnimationFrame(place)
+    })
   }, [])
 
   const handleCreatorKeyDown = useCallback(
@@ -165,17 +190,40 @@ function App() {
         if (idx < whiteCellOrder.length - 1) focusCell(idx + 1)
       } else if (key === 'Backspace' || key === 'Delete') {
         e.preventDefault()
-        setLetter(r, c, '')
-        if (idx > 0) focusCell(idx - 1)
-      } else if (key === 'ArrowRight' || key === 'ArrowDown') {
+        const cur = (letters[r][c] || '').trim()
+        if (cur) {
+          setLetter(r, c, '')
+          focusCell(idx)
+        } else if (idx > 0) {
+          focusCell(idx - 1)
+        }
+      } else if (key === 'ArrowRight') {
         e.preventDefault()
-        if (idx < whiteCellOrder.length - 1) focusCell(idx + 1)
-      } else if (key === 'ArrowLeft' || key === 'ArrowUp') {
+        if (c < cols - 1 && !grid[r][c + 1]) {
+          const j = whiteCellOrder.findIndex(([rr, cc]) => rr === r && cc === c + 1)
+          if (j >= 0) focusCell(j)
+        }
+      } else if (key === 'ArrowLeft') {
         e.preventDefault()
-        if (idx > 0) focusCell(idx - 1)
+        if (c > 0 && !grid[r][c - 1]) {
+          const j = whiteCellOrder.findIndex(([rr, cc]) => rr === r && cc === c - 1)
+          if (j >= 0) focusCell(j)
+        }
+      } else if (key === 'ArrowDown') {
+        e.preventDefault()
+        if (r < rows - 1 && !grid[r + 1][c]) {
+          const j = whiteCellOrder.findIndex(([rr, cc]) => rr === r + 1 && cc === c)
+          if (j >= 0) focusCell(j)
+        }
+      } else if (key === 'ArrowUp') {
+        e.preventDefault()
+        if (r > 0 && !grid[r - 1][c]) {
+          const j = whiteCellOrder.findIndex(([rr, cc]) => rr === r - 1 && cc === c)
+          if (j >= 0) focusCell(j)
+        }
       }
     },
-    [whiteCellOrder, setLetter, focusCell, handleToggleBlack]
+    [whiteCellOrder, letters, rows, cols, grid, setLetter, focusCell, handleToggleBlack]
   )
 
   const handleCreatorCellChange = useCallback(
@@ -789,6 +837,8 @@ function App() {
                       className="creator-cell-input"
                       onKeyDown={(e) => handleCreatorKeyDown(e, r, c)}
                       onChange={(e) => handleCreatorCellChange(e, r, c, whiteIndex)}
+                      onFocus={snapCreatorCaretToEnd}
+                      onClick={snapCreatorCaretToEnd}
                     />
                   </div>
                 )
@@ -812,11 +862,13 @@ function App() {
                   : w.number
               const lenVal = phraseLens[key] ?? String(w.length)
               const err = phraseLensErrors[key]
+              const phraseLenCh = Math.max(1, lenVal.length || 1)
               return (
                 <div key={key} className="clue-row">
                   <span className="clue-num">{clueNum}.</span>
                   <input
                     type="text"
+                    className="clue-text-input"
                     placeholder="Clue"
                     value={clues[key] ?? ''}
                     onChange={(e) => setClue(key, e.target.value)}
@@ -829,8 +881,15 @@ function App() {
                     <input
                       type="text"
                       inputMode="numeric"
+                      size={phraseLenCh}
                       className={`answer-len-input ${err ? 'answer-len-input-invalid' : ''}`}
-                      style={{ width: `${Math.max(3, lenVal.length + 1)}ch` }}
+                      style={{
+                        width: `${phraseLenCh}ch`,
+                        minWidth: `${phraseLenCh}ch`,
+                        maxWidth: `${phraseLenCh}ch`,
+                        flexGrow: 0,
+                        flexShrink: 0,
+                      }}
                       value={lenVal}
                       onChange={(e) => handlePhraseLensChange(key, e.target.value)}
                       onBlur={(e) => handlePhraseLensBlur(key, w.length, e.target.value)}
@@ -849,11 +908,13 @@ function App() {
                 const key = wordKey(w.number, 'down')
                 const lenVal = phraseLens[key] ?? String(w.length)
                 const err = phraseLensErrors[key]
+                const phraseLenCh = Math.max(1, lenVal.length || 1)
                 return (
                   <div key={key} className="clue-row">
                     <span className="clue-num">{w.number}.</span>
                     <input
                       type="text"
+                      className="clue-text-input"
                       placeholder="Clue"
                       value={clues[key] ?? ''}
                       onChange={(e) => setClue(key, e.target.value)}
@@ -866,8 +927,15 @@ function App() {
                       <input
                         type="text"
                         inputMode="numeric"
+                        size={phraseLenCh}
                         className={`answer-len-input ${err ? 'answer-len-input-invalid' : ''}`}
-                        style={{ width: `${Math.max(3, lenVal.length + 1)}ch` }}
+                        style={{
+                          width: `${phraseLenCh}ch`,
+                          minWidth: `${phraseLenCh}ch`,
+                          maxWidth: `${phraseLenCh}ch`,
+                          flexGrow: 0,
+                          flexShrink: 0,
+                        }}
                         value={lenVal}
                         onChange={(e) => handlePhraseLensChange(key, e.target.value)}
                         onBlur={(e) => handlePhraseLensBlur(key, w.length, e.target.value)}

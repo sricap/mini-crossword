@@ -743,7 +743,7 @@
   min-width: 1.5rem;
 }
 
-.clue-row input[type="text"] {
+.clue-row .clue-text-input {
   flex: 1;
   min-width: 120px;
   padding: 0.4rem 0.5rem;
@@ -763,17 +763,20 @@
   gap: 0;
   font-size: 0.8rem;
   color: #666;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  width: max-content;
+  max-width: 100%;
 }
 
-.answer-len-input {
-  min-width: 2ch;
-  max-width: 14ch;
+.clue-row .answer-len-wrap .answer-len-input {
+  box-sizing: content-box;
+  flex: none;
   padding: 0.15rem 0.2rem;
   border: 1px solid #ccc;
   border-radius: 3px;
   font: inherit;
   font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
   text-align: center;
   background: #fff;
   color: #333;
@@ -788,6 +791,12 @@
   background: #f5f5f5;
   color: #555;
   cursor: default;
+}
+
+.answer-len-display {
+  font-size: 0.8rem;
+  color: #666;
+  font-variant-numeric: tabular-nums;
 }
 
 .actions {
