@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   createEmptyGrid,
   toggleCellSymmetrically,
@@ -10,6 +10,8 @@ import {
   createEmptyFill,
   getAnswersFromLetters,
   buildLettersFromAnswers,
+  validatePhraseLensAgainstWordLength,
+  getAcrosticAcrossDisplayNumbers,
 } from './utils/puzzle'
 import { listPuzzles, getPuzzle, createPuzzle, updatePuzzle } from './api/db'
 import { SolverView, SolverLanding } from './SolverView'
@@ -43,6 +45,9 @@ function App() {
   const [listLoadError, setListLoadError] = useState('')
   const [dbSaveStatus, setDbSaveStatus] = useState('')
   const [saveConfirmPending, setSaveConfirmPending] = useState(null)
+  const [phraseLens, setPhraseLens] = useState({})
+  const [phraseLensErrors, setPhraseLensErrors] = useState({})
+  const creatorLastTapRef = useRef({ time: 0, r: -1, c: -1 })
 
   const { words, numberAt } = getWordsFromGrid(grid)
   const validation = validateGrid(grid)
@@ -54,6 +59,8 @@ function App() {
     setGrid(createEmptyGrid(newRows, effectiveCols))
     setLetters(createEmptyFill(newRows, effectiveCols))
     setClues({})
+    setPhraseLens({})
+    setPhraseLensErrors({})
   }, [isAcrostic])
 
   const handleToggleBlack = useCallback((e, r, c) => {
@@ -67,6 +74,57 @@ function App() {
 
   const setClue = useCallback((key, value) => {
     setClues((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const handlePhraseLensChange = useCallback((key, value) => {
+    setPhraseLens((prev) => ({ ...prev, [key]: value }))
+    setPhraseLensErrors((prev) => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }, [])
+
+  const handlePhraseLensBlur = useCallback((key, wordLength, raw) => {
+    const text = (raw ?? '').trim()
+    if (!text) {
+      setPhraseLens((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      setPhraseLensErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      return
+    }
+    const result = validatePhraseLensAgainstWordLength(text, wordLength)
+    if (!result.valid) {
+      window.alert(result.message)
+      setPhraseLensErrors((prev) => ({ ...prev, [key]: result.message }))
+      return
+    }
+    setPhraseLensErrors((prev) => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+    setPhraseLens((prev) => ({ ...prev, [key]: result.normalized }))
+  }, [])
+
+  const handleWhiteCellTouchEnd = useCallback((e, r, c) => {
+    const now = Date.now()
+    const prev = creatorLastTapRef.current
+    if (prev.r === r && prev.c === c && now - prev.time < 450) {
+      e.preventDefault()
+      creatorLastTapRef.current = { time: 0, r: -1, c: -1 }
+      setGrid((g) => toggleCellSymmetrically(g, r, c))
+      return
+    }
+    creatorLastTapRef.current = { time: now, r, c }
   }, [])
 
   const setLetter = useCallback((r, c, letter) => {
@@ -137,10 +195,20 @@ function App() {
   )
 
   const saveToBrowser = useCallback(() => {
-    const payload = { rows, cols, grid, clues, answers: answersFromLetters, title, blurb, acrostic: isAcrostic }
+    const payload = {
+      rows,
+      cols,
+      grid,
+      clues,
+      answers: answersFromLetters,
+      title,
+      blurb,
+      acrostic: isAcrostic,
+      phraseLens,
+    }
     localStorage.setItem(STORAGE_KEY, encodePuzzle(payload))
     setLoadError('')
-  }, [rows, cols, grid, clues, answersFromLetters, title, blurb, isAcrostic])
+  }, [rows, cols, grid, clues, answersFromLetters, title, blurb, isAcrostic, phraseLens])
 
   const loadFromBrowser = useCallback(() => {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -162,6 +230,8 @@ function App() {
     setTitle(p.title || '')
     setBlurb(p.blurb != null ? String(p.blurb) : '')
     setIsAcrostic(Boolean(p.acrostic))
+    setPhraseLens(p.phraseLens && typeof p.phraseLens === 'object' ? p.phraseLens : {})
+    setPhraseLensErrors({})
     setLoadError('')
   }, [])
 
@@ -197,6 +267,7 @@ function App() {
       blurb: blurb != null ? String(blurb) : '',
       acrostic: isAcrostic,
       creator: (creatorName || '').trim().slice(0, 50) || undefined,
+      phraseLens,
     }
     if (puzzleId) {
       const { error } = await updatePuzzle(puzzleId, payload)
@@ -231,7 +302,20 @@ function App() {
       listPuzzles().then(({ data: list }) => setPuzzleList(list || []))
       return true
     }
-  }, [puzzleId, rows, cols, grid, clues, answersFromLetters, title, blurb, isAcrostic, creatorName, validation.valid])
+  }, [
+    puzzleId,
+    rows,
+    cols,
+    grid,
+    clues,
+    answersFromLetters,
+    title,
+    blurb,
+    isAcrostic,
+    creatorName,
+    validation.valid,
+    phraseLens,
+  ])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -294,6 +378,10 @@ function App() {
         setTitle(data.title || '')
         setBlurb(data.blurb != null ? String(data.blurb) : '')
         setIsAcrostic(Boolean(data.acrostic))
+        setPhraseLens(
+          data.phraseLens && typeof data.phraseLens === 'object' ? data.phraseLens : {}
+        )
+        setPhraseLensErrors({})
         setPuzzleId(data.id)
         setCreatorName(data.creator || '')
         setLoadError('')
@@ -337,6 +425,8 @@ function App() {
     setTitle('')
     setBlurb('')
     setIsAcrostic(false)
+    setPhraseLens({})
+    setPhraseLensErrors({})
     setLoadError('')
     window.history.replaceState(null, '', window.location.pathname)
   }, [])
@@ -357,6 +447,10 @@ function App() {
       setTitle(data.title || '')
       setBlurb(data.blurb != null ? String(data.blurb) : '')
       setIsAcrostic(Boolean(data.acrostic))
+      setPhraseLens(
+        data.phraseLens && typeof data.phraseLens === 'object' ? data.phraseLens : {}
+      )
+      setPhraseLensErrors({})
       setPuzzleId(data.id)
       setCreatorName(data.creator || '')
       setLoadError('')
@@ -398,6 +492,10 @@ function App() {
 
   const acrossWords = words.filter((w) => w.direction === 'across')
   const downWords = words.filter((w) => w.direction === 'down')
+  const acrosticDisplayNums = useMemo(
+    () => (isAcrostic ? getAcrosticAcrossDisplayNumbers(acrossWords) : null),
+    [isAcrostic, acrossWords]
+  )
 
   const goToSolver = useCallback(() => {
     setMode('solver')
@@ -601,6 +699,7 @@ function App() {
           <label>
             Rows:{' '}
             <span className="size-stepper">
+              <button type="button" className="size-step-btn" onClick={() => handleResize(Math.max(3, rows - 1), cols)} aria-label="Decrease rows">−</button>
               <input
                 type="number"
                 min={3}
@@ -610,13 +709,13 @@ function App() {
                 className="size-input"
                 aria-label="Rows"
               />
-              <button type="button" className="size-step-btn" onClick={() => handleResize(Math.max(3, rows - 1), cols)} aria-label="Decrease rows">−</button>
               <button type="button" className="size-step-btn" onClick={() => handleResize(Math.min(15, rows + 1), cols)} aria-label="Increase rows">+</button>
             </span>
           </label>
           <label>
             Cols:{' '}
             <span className="size-stepper">
+              <button type="button" className="size-step-btn" onClick={() => handleResize(rows, Math.max(3, cols - 1))} aria-label="Decrease columns" disabled={isAcrostic}>−</button>
               <input
                 type="number"
                 min={3}
@@ -628,13 +727,12 @@ function App() {
                 title={isAcrostic ? 'Acrostic uses same value as rows' : ''}
                 aria-label="Columns"
               />
-              <button type="button" className="size-step-btn" onClick={() => handleResize(rows, Math.max(3, cols - 1))} aria-label="Decrease columns" disabled={isAcrostic}>−</button>
               <button type="button" className="size-step-btn" onClick={() => handleResize(rows, Math.min(15, cols + 1))} aria-label="Increase columns" disabled={isAcrostic}>+</button>
             </span>
           </label>
         </div>
         <p className="hint">
-          Space or Shift+click a cell to toggle black/white (diagonally symmetric). Click to type.
+          Double-tap a white cell to toggle black/white (diagonally symmetric). Shift+click or Space also toggle. Click to type.
         </p>
         {!validation.valid && (
           <p className="validation-error">
@@ -651,8 +749,11 @@ function App() {
           >
             {grid.map((row, r) =>
               row.map((black, c) => {
+                const wAcross = acrossWords.find((x) => x.startRow === r && x.startCol === c)
                 const num = isAcrostic
-                  ? (acrossWords.some((w) => w.startRow === r && w.startCol === c) ? numberAt(r, c) : null)
+                  ? wAcross && acrosticDisplayNums
+                    ? acrosticDisplayNums.get(wordKey(wAcross.number, 'across'))
+                    : null
                   : numberAt(r, c)
                 const whiteIndex = whiteCellOrder.findIndex(([rr, cc]) => rr === r && cc === c)
                 if (black) {
@@ -668,6 +769,11 @@ function App() {
                   <div
                     key={`${r}-${c}`}
                     className="cell white creator-cell"
+                    onTouchEnd={(e) => handleWhiteCellTouchEnd(e, r, c)}
+                    onDoubleClick={(e) => {
+                      e.preventDefault()
+                      setGrid((g) => toggleCellSymmetrically(g, r, c))
+                    }}
                     onClick={(e) => {
                       if (e.shiftKey) handleToggleBlack(e, r, c)
                       else e.currentTarget.querySelector('.creator-cell-input')?.focus()
@@ -700,9 +806,15 @@ function App() {
             <h3>Across</h3>
             {acrossWords.map((w) => {
               const key = wordKey(w.number, 'across')
+              const clueNum =
+                isAcrostic && acrosticDisplayNums
+                  ? acrosticDisplayNums.get(key)
+                  : w.number
+              const lenVal = phraseLens[key] ?? String(w.length)
+              const err = phraseLensErrors[key]
               return (
                 <div key={key} className="clue-row">
-                  <span className="clue-num">{w.number}.</span>
+                  <span className="clue-num">{clueNum}.</span>
                   <input
                     type="text"
                     placeholder="Clue"
@@ -712,7 +824,20 @@ function App() {
                   <span className="answer-readonly" title="From grid">
                     {answersFromLetters[key] || '—'}
                   </span>
-                  <span className="answer-len">({w.length})</span>
+                  <span className="answer-len-wrap" title={err || undefined}>
+                    (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className={`answer-len-input ${err ? 'answer-len-input-invalid' : ''}`}
+                      style={{ width: `${Math.max(3, lenVal.length + 1)}ch` }}
+                      value={lenVal}
+                      onChange={(e) => handlePhraseLensChange(key, e.target.value)}
+                      onBlur={(e) => handlePhraseLensBlur(key, w.length, e.target.value)}
+                      aria-label={`Answer length breakdown for clue ${clueNum}`}
+                    />
+                    )
+                  </span>
                 </div>
               )
             })}
@@ -722,6 +847,8 @@ function App() {
               <h3>Down</h3>
               {downWords.map((w) => {
                 const key = wordKey(w.number, 'down')
+                const lenVal = phraseLens[key] ?? String(w.length)
+                const err = phraseLensErrors[key]
                 return (
                   <div key={key} className="clue-row">
                     <span className="clue-num">{w.number}.</span>
@@ -734,7 +861,20 @@ function App() {
                     <span className="answer-readonly" title="From grid">
                       {answersFromLetters[key] || '—'}
                     </span>
-                    <span className="answer-len">({w.length})</span>
+                    <span className="answer-len-wrap" title={err || undefined}>
+                      (
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        className={`answer-len-input ${err ? 'answer-len-input-invalid' : ''}`}
+                        style={{ width: `${Math.max(3, lenVal.length + 1)}ch` }}
+                        value={lenVal}
+                        onChange={(e) => handlePhraseLensChange(key, e.target.value)}
+                        onBlur={(e) => handlePhraseLensBlur(key, w.length, e.target.value)}
+                        aria-label={`Answer length breakdown for clue ${w.number} down`}
+                      />
+                      )
+                    </span>
                   </div>
                 )
               })}

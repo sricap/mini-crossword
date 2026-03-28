@@ -7,6 +7,8 @@ import {
   isPuzzleComplete,
   isGridFull,
   getIncorrectCells,
+  validatePhraseLensAgainstWordLength,
+  getAcrosticAcrossDisplayNumbers,
 } from './utils/puzzle'
 import { listPuzzles, getPuzzle } from './api/db'
 import { IconBack, IconCheck, IconRevealAll, IconSave } from './Icons'
@@ -38,6 +40,10 @@ function SolverView({ puzzle, initialFill, onBack }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [paused, setPaused] = useState(false)
   const [modalMessage, setModalMessage] = useState(null)
+  const [phraseLensLocal, setPhraseLensLocal] = useState(() =>
+    puzzle.phraseLens && typeof puzzle.phraseLens === 'object' ? { ...puzzle.phraseLens } : {}
+  )
+  const [phraseLensErrors, setPhraseLensErrors] = useState({})
 
   const { words, numberAt } = getWordsFromGrid(puzzle.grid)
   const acrossWords = words.filter((w) => w.direction === 'across')
@@ -50,6 +56,21 @@ function SolverView({ puzzle, initialFill, onBack }) {
     const id = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
     return () => clearInterval(id)
   }, [paused, showCompletion])
+
+  const puzzleSyncKey = useMemo(
+    () =>
+      puzzle.id != null
+        ? `id:${puzzle.id}`
+        : `anon:${puzzle.rows}x${puzzle.cols}:${JSON.stringify(puzzle.grid)}:${puzzle.title || ''}`,
+    [puzzle.id, puzzle.rows, puzzle.cols, puzzle.grid, puzzle.title]
+  )
+
+  useEffect(() => {
+    setPhraseLensLocal(
+      puzzle.phraseLens && typeof puzzle.phraseLens === 'object' ? { ...puzzle.phraseLens } : {}
+    )
+    setPhraseLensErrors({})
+  }, [puzzleSyncKey])
 
   useEffect(() => {
     if (showCompletion) return
@@ -189,6 +210,49 @@ function SolverView({ puzzle, initialFill, onBack }) {
   )
 
   const acrostic = Boolean(puzzle.acrostic)
+  const acrosticDisplayNums = useMemo(
+    () => (acrostic ? getAcrosticAcrossDisplayNumbers(acrossWords) : null),
+    [acrostic, acrossWords]
+  )
+
+  const handleSolverPhraseLensChange = useCallback((key, value) => {
+    setPhraseLensLocal((prev) => ({ ...prev, [key]: value }))
+    setPhraseLensErrors((prev) => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }, [])
+
+  const handleSolverPhraseLensBlur = useCallback((key, wordLength, raw) => {
+    const text = (raw ?? '').trim()
+    if (!text) {
+      setPhraseLensLocal((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      setPhraseLensErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      return
+    }
+    const result = validatePhraseLensAgainstWordLength(text, wordLength)
+    if (!result.valid) {
+      window.alert(result.message)
+      setPhraseLensErrors((prev) => ({ ...prev, [key]: result.message }))
+      return
+    }
+    setPhraseLensErrors((prev) => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+    setPhraseLensLocal((prev) => ({ ...prev, [key]: result.normalized }))
+  }, [])
 
   const showPauseOverlay = paused && !showCompletion
 
@@ -233,8 +297,11 @@ function SolverView({ puzzle, initialFill, onBack }) {
             >
               {puzzle.grid.map((row, r) =>
                 row.map((black, c) => {
+                  const wAcross = acrossWords.find((x) => x.startRow === r && x.startCol === c)
                   const num = acrostic
-                    ? (acrossWords.some((w) => w.startRow === r && w.startCol === c) ? numberAt(r, c) : null)
+                    ? wAcross && acrosticDisplayNums
+                      ? acrosticDisplayNums.get(wordKey(wAcross.number, 'across'))
+                      : null
                     : numberAt(r, c)
                   if (black) {
                     return (
@@ -283,10 +350,29 @@ function SolverView({ puzzle, initialFill, onBack }) {
               <h3>Across</h3>
               {acrossWords.map((w) => {
                 const key = wordKey(w.number, 'across')
+                const clueNum =
+                  acrostic && acrosticDisplayNums ? acrosticDisplayNums.get(key) : w.number
+                const lenVal = phraseLensLocal[key] ?? String(w.length)
+                const err = phraseLensErrors[key]
                 return (
                   <div key={key} className="clue-row solver-clue-row">
-                    <span className="clue-num">{w.number}.</span>
+                    <span className="clue-num">{clueNum}.</span>
                     <span className="clue-text">{puzzle.clues[key] || '—'}</span>
+                    <span className="answer-len-wrap" title={err || undefined}>
+                      (
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        className={`answer-len-input ${err ? 'answer-len-input-invalid' : ''}`}
+                        style={{ width: `${Math.max(3, lenVal.length + 1)}ch` }}
+                        value={lenVal}
+                        onChange={(e) => handleSolverPhraseLensChange(key, e.target.value)}
+                        onBlur={(e) => handleSolverPhraseLensBlur(key, w.length, e.target.value)}
+                        disabled={showCompletion}
+                        aria-label={`Answer length breakdown for clue ${clueNum}`}
+                      />
+                      )
+                    </span>
                     <button
                       type="button"
                       className="reveal-word-icon-btn"
@@ -312,10 +398,27 @@ function SolverView({ puzzle, initialFill, onBack }) {
                 <h3>Down</h3>
                 {downWords.map((w) => {
                   const key = wordKey(w.number, 'down')
+                  const lenVal = phraseLensLocal[key] ?? String(w.length)
+                  const err = phraseLensErrors[key]
                     return (
                     <div key={key} className="clue-row solver-clue-row">
                       <span className="clue-num">{w.number}.</span>
                       <span className="clue-text">{puzzle.clues[key] || '—'}</span>
+                      <span className="answer-len-wrap" title={err || undefined}>
+                        (
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          className={`answer-len-input ${err ? 'answer-len-input-invalid' : ''}`}
+                          style={{ width: `${Math.max(3, lenVal.length + 1)}ch` }}
+                          value={lenVal}
+                          onChange={(e) => handleSolverPhraseLensChange(key, e.target.value)}
+                          onBlur={(e) => handleSolverPhraseLensBlur(key, w.length, e.target.value)}
+                          disabled={showCompletion}
+                          aria-label={`Answer length breakdown for clue ${w.number} down`}
+                        />
+                        )
+                      </span>
                       <button
                         type="button"
                         className="reveal-word-icon-btn"

@@ -35,6 +35,10 @@ function rowToPuzzle(row) {
       : {},
     acrostic: Boolean(row.acrostic),
     blurb: row.blurb != null ? String(row.blurb) : '',
+    phraseLens:
+      row.phrase_lens && typeof row.phrase_lens === 'object'
+        ? row.phrase_lens
+        : {},
   }
 }
 
@@ -86,6 +90,10 @@ export async function createPuzzle(payload) {
     answers: payload.answers || {},
     acrostic: Boolean(payload.acrostic),
     blurb: payload.blurb != null ? String(payload.blurb) : '',
+    phrase_lens:
+      payload.phraseLens && typeof payload.phraseLens === 'object'
+        ? payload.phraseLens
+        : {},
   }
   const { data, error } = await supabase.from('puzzles').insert(row).select().single()
   // #region agent log
@@ -115,6 +123,10 @@ export async function updatePuzzle(id, payload) {
     answers: payload.answers || {},
     acrostic: Boolean(payload.acrostic),
     blurb: payload.blurb != null ? String(payload.blurb) : '',
+    phrase_lens:
+      payload.phraseLens && typeof payload.phraseLens === 'object'
+        ? payload.phraseLens
+        : {},
   }
   const { error } = await supabase.from('puzzles').update(update).eq('id', id)
   // #region agent log

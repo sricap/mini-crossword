@@ -116,6 +116,7 @@ export function encodePuzzle(puzzle) {
     title: puzzle.title != null ? String(puzzle.title).slice(0, 25) : '',
     acrostic: Boolean(puzzle.acrostic),
     blurb: puzzle.blurb != null ? String(puzzle.blurb) : '',
+    phraseLens: puzzle.phraseLens && typeof puzzle.phraseLens === 'object' ? puzzle.phraseLens : {},
   };
   return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
 }
@@ -142,6 +143,8 @@ export function decodePuzzle(encoded) {
       title: p.title != null ? String(p.title).slice(0, 25) : '',
       acrostic: Boolean(p.acrostic),
       blurb: p.blurb != null ? String(p.blurb) : '',
+      phraseLens:
+        p.phraseLens && typeof p.phraseLens === 'object' ? p.phraseLens : {},
     };
   } catch {
     return null;
@@ -150,6 +153,58 @@ export function decodePuzzle(encoded) {
 
 export function wordKey(number, direction) {
   return `${number}-${direction}`;
+}
+
+/** For acrostic mode: map each across word key to clue numbers 1…n (continuous). */
+export function getAcrosticAcrossDisplayNumbers(acrossWords) {
+  const sorted = [...acrossWords].sort(
+    (a, b) =>
+      a.startRow !== b.startRow ? a.startRow - b.startRow : a.startCol - b.startCol
+  );
+  const map = new Map();
+  sorted.forEach((w, i) => {
+    map.set(wordKey(w.number, 'across'), i + 1);
+  });
+  return map;
+}
+
+/**
+ * Parse phrase length text (comma-separated positive integers, e.g. "3,2").
+ */
+export function parsePhraseLensText(text) {
+  const raw = (text || '').trim();
+  if (!raw) return { ok: false, sum: 0, normalized: '' };
+  const parts = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return { ok: false, sum: 0, normalized: '' };
+  const nums = [];
+  for (const p of parts) {
+    if (!/^\d+$/.test(p)) return { ok: false, sum: 0, normalized: raw };
+    const n = parseInt(p, 10);
+    if (n <= 0) return { ok: false, sum: 0, normalized: raw };
+    nums.push(n);
+  }
+  const sum = nums.reduce((a, b) => a + b, 0);
+  return { ok: true, sum, normalized: nums.join(',') };
+}
+
+/**
+ * Check phrase lengths sum to word length (white squares in that entry).
+ */
+export function validatePhraseLensAgainstWordLength(text, wordLength) {
+  const p = parsePhraseLensText(text);
+  if (!p.ok) {
+    return {
+      valid: false,
+      message: 'Use comma-separated whole numbers (e.g. 3,2).',
+    };
+  }
+  if (p.sum !== wordLength) {
+    return {
+      valid: false,
+      message: `Those lengths add to ${p.sum}, but this answer has ${wordLength} letters.`,
+    };
+  }
+  return { valid: true, normalized: p.normalized };
 }
 
 /**

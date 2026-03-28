@@ -20,6 +20,7 @@ Used with Supabase. Schema and RLS for human inspection and editing.
 | `answers`  | `jsonb`   | Object: `{ "1-across": "ANSWER", ... }` (uppercase) |
 | `acrostic` | `boolean` | If true, only across clues are used |
 | `blurb`   | `text`    | Optional instructions (3–4 sentences); shown in solver below title |
+| `phrase_lens` | `jsonb` | Optional: `{ "1-across": "3,2", ... }` — phrase length hints per clue (comma-separated counts summing to word length) |
 
 Indexes (optional but useful):
 
@@ -54,10 +55,12 @@ create table if not exists public.puzzles (
   clues jsonb not null default '{}',
   answers jsonb not null default '{}',
   acrostic boolean not null default false,
-  blurb text default ''
+  blurb text default '',
+  phrase_lens jsonb not null default '{}'
 );
 
 -- If table already exists, add blurb: alter table public.puzzles add column if not exists blurb text default '';
+-- Phrase length hints per clue: alter table public.puzzles add column if not exists phrase_lens jsonb not null default '{}';
 
 -- Optional index for list order
 create index if not exists puzzles_updated_at_desc on public.puzzles (updated_at desc);
@@ -82,6 +85,6 @@ create policy "Allow anon update" on public.puzzles for update using (true);
 - **List:** `select id, title, creator, created_at, updated_at, rows, cols, acrostic from puzzles order by updated_at desc limit 100`
 - **Get by ID:** `select * from puzzles where id = $1`
 - **Create:** `insert into puzzles (title, creator, rows, cols, grid, clues, answers, acrostic, blurb) values (...) returning *`
-- **Update:** `update puzzles set title, creator, rows, cols, grid, clues, answers, acrostic, blurb, updated_at = now() where id = $1`
+- **Update:** `update puzzles set title, creator, rows, cols, grid, clues, answers, acrostic, blurb, phrase_lens, updated_at = now() where id = $1`
 
 The app uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the frontend. If these are missing, the app still runs but DB operations fail (show error messages).
