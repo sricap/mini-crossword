@@ -1,5 +1,6 @@
 import { checkRateLimit } from './lib/rateLimit.js'
 import { buildAiHintUserPrompt } from './lib/aiHintPrompt.js'
+import { describeGeminiFailure } from './lib/geminiErrors.js'
 import { parseSuggestionArray } from './lib/parseAiResponse.js'
 
 const RATE_WINDOW_MS = Number(process.env.AI_HINT_RATE_LIMIT_WINDOW_MS) || 60_000
@@ -133,9 +134,16 @@ export default async function handler(req, res) {
   const geminiJson = await geminiRes.json().catch(() => ({}))
 
   if (!geminiRes.ok) {
-    console.error('[ai-hint] Gemini error status', geminiRes.status, JSON.stringify(geminiJson).slice(0, 500))
-    res.statusCode = 502
-    return res.end(JSON.stringify({ error: 'The language model returned an error.' }))
+    const { message, httpStatus } = describeGeminiFailure(geminiRes.status, geminiJson)
+    const errObj = geminiJson && typeof geminiJson === 'object' ? geminiJson.error : null
+    console.error(
+      '[ai-hint] Gemini error',
+      geminiRes.status,
+      errObj && typeof errObj.status === 'string' ? errObj.status : '',
+      JSON.stringify(geminiJson).slice(0, 800)
+    )
+    res.statusCode = httpStatus
+    return res.end(JSON.stringify({ error: message }))
   }
 
   const text =

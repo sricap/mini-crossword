@@ -22,6 +22,40 @@ const DEFAULT_SIZE = 5
 const STORAGE_KEY = 'mini-crossword-draft'
 const STORAGE_KEY_PROGRESS = 'mini-crossword-solver-progress'
 
+function CreatorPuzzleListPane({
+  listLoadError,
+  puzzleList,
+  puzzleId,
+  onNew,
+  onSelect,
+  className,
+}) {
+  return (
+    <aside className={className}>
+      <h2>Puzzles</h2>
+      {listLoadError && <p className="error">{listLoadError}</p>}
+      <ul className="puzzle-list">
+        <li>
+          <button type="button" className="puzzle-list-btn puzzle-list-btn-new" onClick={onNew}>
+            New...
+          </button>
+        </li>
+        {puzzleList.map((p) => (
+          <li key={p.id}>
+            <button
+              type="button"
+              className={`puzzle-list-btn ${puzzleId === p.id ? 'active' : ''}`}
+              onClick={() => onSelect(p.id)}
+            >
+              {p.title || 'Untitled'} {p.creator ? `— ${p.creator}` : ''}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  )
+}
+
 function App() {
   const [mode, setMode] = useState('home')
   const [solverPuzzle, setSolverPuzzle] = useState(null)
@@ -47,6 +81,8 @@ function App() {
   const [saveConfirmPending, setSaveConfirmPending] = useState(null)
   const [phraseLens, setPhraseLens] = useState({})
   const [phraseLensErrors, setPhraseLensErrors] = useState({})
+  /** True: show only puzzle list + title until user picks New… or a puzzle. */
+  const [creatorPickPuzzle, setCreatorPickPuzzle] = useState(false)
   const creatorLastTapRef = useRef({ time: 0, r: -1, c: -1 })
 
   const { words, numberAt } = getWordsFromGrid(grid)
@@ -433,6 +469,7 @@ function App() {
         setPuzzleId(data.id)
         setCreatorName(data.creator || '')
         setLoadError('')
+        setCreatorPickPuzzle(false)
       })
     }
   }, [])
@@ -441,6 +478,7 @@ function App() {
     setMode('home')
     setSolverPuzzle(null)
     setSolverFill(null)
+    setCreatorPickPuzzle(false)
   }, [])
 
   const goToCreator = useCallback(() => {
@@ -449,6 +487,7 @@ function App() {
     setSolverFill(null)
     setPuzzleId(null)
     setSolverLoadError('')
+    setCreatorPickPuzzle(true)
   }, [])
 
   useEffect(() => {
@@ -476,6 +515,7 @@ function App() {
     setPhraseLens({})
     setPhraseLensErrors({})
     setLoadError('')
+    setCreatorPickPuzzle(false)
     window.history.replaceState(null, '', window.location.pathname)
   }, [])
 
@@ -502,6 +542,7 @@ function App() {
       setPuzzleId(data.id)
       setCreatorName(data.creator || '')
       setLoadError('')
+      setCreatorPickPuzzle(false)
       window.history.replaceState(null, '', `${window.location.pathname}?edit=${id}`)
     })
   }, [])
@@ -628,14 +669,18 @@ function App() {
           </button>
           <select
             className="creator-mobile-dropdown"
-            value={puzzleId || 'new'}
+            value={creatorPickPuzzle && !puzzleId ? '_pick' : puzzleId || 'new'}
             onChange={(e) => {
               const v = e.target.value
+              if (v === '_pick') return
               if (v === 'new') handleNewPuzzle()
               else handlePuzzleSelect(v)
             }}
             aria-label="Select puzzle"
           >
+            {creatorPickPuzzle && !puzzleId && (
+              <option value="_pick">Choose or New…</option>
+            )}
             <option value="new">New...</option>
             {puzzleList.map((p) => (
               <option key={p.id} value={p.id}>
@@ -650,45 +695,55 @@ function App() {
         </div>
       </header>
 
-      <div className="creator-layout">
-        <div className="creator-left">
-          <div className="creator-left-header">
-            <button type="button" className="nav-link nav-link-icon" onClick={goToHome} title="Home" aria-label="Home">
-              <IconHome size={20} />
-            </button>
-            <button type="button" className="nav-link nav-link-icon" onClick={goToSolver} title="Solve a puzzle" aria-label="Solve a puzzle">
-              <IconSolve size={20} />
-            </button>
-          </div>
-        <aside className="creator-pane">
-          <h2>Puzzles</h2>
-          {listLoadError && <p className="error">{listLoadError}</p>}
-          <ul className="puzzle-list">
-            <li>
-              <button
-                type="button"
-                className="puzzle-list-btn puzzle-list-btn-new"
-                onClick={handleNewPuzzle}
-              >
-                New...
+      <div className={`creator-layout${creatorPickPuzzle ? ' creator-layout-pick-only' : ''}`}>
+        {!creatorPickPuzzle && (
+          <div className="creator-left">
+            <div className="creator-left-header">
+              <button type="button" className="nav-link nav-link-icon" onClick={goToHome} title="Home" aria-label="Home">
+                <IconHome size={20} />
               </button>
-            </li>
-            {puzzleList.map((p) => (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  className={`puzzle-list-btn ${puzzleId === p.id ? 'active' : ''}`}
-                  onClick={() => handlePuzzleSelect(p.id)}
-                >
-                  {p.title || 'Untitled'} {p.creator ? `— ${p.creator}` : ''}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </aside>
-        </div>
-        <main className="creator-main">
+              <button type="button" className="nav-link nav-link-icon" onClick={goToSolver} title="Solve a puzzle" aria-label="Solve a puzzle">
+                <IconSolve size={20} />
+              </button>
+            </div>
+            <CreatorPuzzleListPane
+              className="creator-pane"
+              listLoadError={listLoadError}
+              puzzleList={puzzleList}
+              puzzleId={puzzleId}
+              onNew={handleNewPuzzle}
+              onSelect={handlePuzzleSelect}
+            />
+          </div>
+        )}
+        <main className={`creator-main${creatorPickPuzzle ? ' creator-main-pick-only' : ''}`}>
+          {creatorPickPuzzle && (
+            <div className="creator-pick-nav">
+              <button type="button" className="nav-link nav-link-icon" onClick={goToHome} title="Home" aria-label="Home">
+                <IconHome size={20} />
+              </button>
+              <button type="button" className="nav-link nav-link-icon" onClick={goToSolver} title="Solve a puzzle" aria-label="Solve a puzzle">
+                <IconSolve size={20} />
+              </button>
+            </div>
+          )}
           <h1 className="creator-main-title">Create away...</h1>
+          {creatorPickPuzzle ? (
+            <>
+              <p className="creator-pick-hint">
+                Choose <strong>New…</strong> to start a puzzle, or select one below to edit it.
+              </p>
+              <CreatorPuzzleListPane
+                className="creator-pane creator-pane-pick-main"
+                listLoadError={listLoadError}
+                puzzleList={puzzleList}
+                puzzleId={puzzleId}
+                onNew={handleNewPuzzle}
+                onSelect={handlePuzzleSelect}
+              />
+            </>
+          ) : (
+            <>
       <section className="section">
         <label className="title-row">
           Name your creation:{' '}
@@ -974,7 +1029,8 @@ function App() {
         {copyStatus && <span className="status">{copyStatus}</span>}
         {loadError && <span className="error">{loadError}</span>}
       </section>
-
+            </>
+          )}
         </main>
       </div>
     </div>

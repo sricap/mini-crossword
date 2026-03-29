@@ -173,6 +173,38 @@
   align-items: flex-start;
 }
 
+/* After Home → Create: single column with puzzle list as primary content. */
+.creator-layout-pick-only {
+  flex-direction: column;
+  align-items: center;
+}
+
+.creator-layout-pick-only .creator-main-pick-only {
+  width: 100%;
+  max-width: 26rem;
+}
+
+.creator-pane-pick-main {
+  width: 100%;
+  max-width: 26rem;
+  margin: 0 auto;
+}
+
+.creator-pick-hint {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: #444;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.creator-pick-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
 .creator-pane {
   flex-shrink: 0;
   width: 220px;
@@ -428,6 +460,10 @@
 }
 
 @media (max-width: 768px) {
+  .creator-pick-nav {
+    display: none;
+  }
+
   .creator-header-mobile-only {
     display: block;
   }
@@ -1087,6 +1123,18 @@
   font-weight: 600;
   color: #3d3366;
   flex-shrink: 0;
+}
+
+/* Drag handle: press/slide (mouse or finger); list below keeps normal scroll. */
+.ai-hint-popover-drag-handle {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.ai-hint-popover-drag-handle:active {
+  cursor: grabbing;
 }
 
 .ai-hint-popover-status {
