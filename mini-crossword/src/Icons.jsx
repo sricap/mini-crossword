@@ -75,6 +75,17 @@ export function IconLink({ size = 20, title = 'Copy link', className = '' }) {
   )
 }
 
+export function IconHint({ size = 20, title = 'AI hint', className = '' }) {
+  return (
+    <svg className={`${iconClass} ${className}`} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <title>{title}</title>
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+      <path d="M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
 export function IconBack({ size = 20, title = 'Back', className = '' }) {
   return (
     <svg className={`${iconClass} ${className}`} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -14,8 +14,7 @@ For each bug, add a row to the table below (or a section). Update **Status** as 
 
 | # | Date       | Description                            | Steps to reproduce                  | Status   | Notes |
 |---|------------|----------------------------------------|-------------------------------------|----------|-------|
-| 1 | Mar 13, 26 | Row/Col counter should not be editable | Click on Row/Col count and type     |  - | - |
-| 2 |            | Remove Load from Img, Parse Img, Copy link, Export to JPG |           |        |       |
+| 1 | Mar 28, 26 | The "Aw, snap!" message locks the user into a cycle of popups. It should not pop up a second time until the user changes a square. | Enger wrong answers     |  - | - |
 
 ---
 

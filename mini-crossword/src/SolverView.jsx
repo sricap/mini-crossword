@@ -11,6 +11,7 @@ import {
 } from './utils/puzzle'
 import { listPuzzles, getPuzzle } from './api/db'
 import { IconBack, IconCheck, IconRevealAll, IconSave } from './Icons'
+import { SolverAiHintControl } from './SolverAiHint'
 
 const STORAGE_KEY_PROGRESS = 'mini-crossword-solver-progress'
 
@@ -355,22 +356,36 @@ function SolverView({ puzzle, initialFill, onBack }) {
                     <span className="answer-len-wrap">
                       (<span className="answer-len-display">{lenDisplay}</span>)
                     </span>
-                    <button
-                      type="button"
-                      className="reveal-word-icon-btn"
-                      onClick={() => revealWord(w)}
-                      title="Reveal Word"
-                      aria-label="Reveal Word"
-                      disabled={showCompletion}
-                    >
-                      <span className="reveal-icon" aria-hidden>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          <path d="M9 18h6" />
-                          <path d="M10 22h4" />
-                          <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.91 3.5A4.65 4.65 0 0 1 8.91 14" />
-                        </svg>
-                      </span>
-                    </button>
+                    <div className="solver-clue-actions">
+                      <SolverAiHintControl
+                        clueKey={key}
+                        clueText={puzzle.clues[key] || ''}
+                        blurb={puzzle.blurb || ''}
+                        lengthSpec={
+                          puzzle.phraseLens && typeof puzzle.phraseLens === 'object' && puzzle.phraseLens[key] != null
+                            ? String(puzzle.phraseLens[key])
+                            : ''
+                        }
+                        gridWordLength={w.length}
+                        disabled={showCompletion}
+                      />
+                      <button
+                        type="button"
+                        className="reveal-word-icon-btn"
+                        onClick={() => revealWord(w)}
+                        title="Reveal Word"
+                        aria-label="Reveal Word"
+                        disabled={showCompletion}
+                      >
+                        <span className="reveal-icon" aria-hidden>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <path d="M9 18h6" />
+                            <path d="M10 22h4" />
+                            <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.91 3.5A4.65 4.65 0 0 1 8.91 14" />
+                          </svg>
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 )
               })}
@@ -391,22 +406,36 @@ function SolverView({ puzzle, initialFill, onBack }) {
                       <span className="answer-len-wrap">
                         (<span className="answer-len-display">{lenDisplay}</span>)
                       </span>
-                      <button
-                        type="button"
-                        className="reveal-word-icon-btn"
-                        onClick={() => revealWord(w)}
-                        title="Reveal Word"
-                        aria-label="Reveal Word"
-                        disabled={showCompletion}
-                      >
-                        <span className="reveal-icon" aria-hidden>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          <path d="M9 18h6" />
-                          <path d="M10 22h4" />
-                          <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.91 3.5A4.65 4.65 0 0 1 8.91 14" />
-                        </svg>
-                      </span>
-                      </button>
+                      <div className="solver-clue-actions">
+                        <SolverAiHintControl
+                          clueKey={key}
+                          clueText={puzzle.clues[key] || ''}
+                          blurb={puzzle.blurb || ''}
+                          lengthSpec={
+                            puzzle.phraseLens && typeof puzzle.phraseLens === 'object' && puzzle.phraseLens[key] != null
+                              ? String(puzzle.phraseLens[key])
+                              : ''
+                          }
+                          gridWordLength={w.length}
+                          disabled={showCompletion}
+                        />
+                        <button
+                          type="button"
+                          className="reveal-word-icon-btn"
+                          onClick={() => revealWord(w)}
+                          title="Reveal Word"
+                          aria-label="Reveal Word"
+                          disabled={showCompletion}
+                        >
+                          <span className="reveal-icon" aria-hidden>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <path d="M9 18h6" />
+                            <path d="M10 22h4" />
+                            <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.91 3.5A4.65 4.65 0 0 1 8.91 14" />
+                          </svg>
+                        </span>
+                        </button>
+                      </div>
                     </div>
                   )
                 })}

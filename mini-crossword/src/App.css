@@ -1001,6 +1001,106 @@
   color: #444;
 }
 
+.solver-clue-actions {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.solver-ai-hint-wrap {
+  position: relative;
+}
+
+.ai-hint-icon-btn {
+  flex-shrink: 0;
+  padding: 0.2rem;
+  border: 1px solid #7c6bb0;
+  border-radius: 4px;
+  background: #faf8ff;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.ai-hint-icon-btn:hover:not(:disabled) {
+  background: #ede8ff;
+}
+
+.ai-hint-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ai-hint-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #5b4a9e;
+}
+
+.ai-hint-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 100;
+  min-width: 12rem;
+  max-width: min(90vw, 20rem);
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.ai-hint-popover-title {
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #e8e4f0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #3d3366;
+}
+
+.ai-hint-popover-status {
+  margin: 0;
+  color: #555;
+}
+
+.ai-hint-popover-error {
+  margin: 0;
+  color: #a00;
+}
+
+.ai-hint-suggestions {
+  margin: 0 0 0.5rem;
+  padding-left: 1.1rem;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.ai-hint-suggestions li {
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.ai-hint-refresh {
+  margin-top: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #f8f8f8;
+  cursor: pointer;
+}
+
+.ai-hint-refresh:hover {
+  background: #eee;
+}
+
 .puzzle-blurb {
   margin: 0 0 1rem;
   padding: 0 0.5rem;
