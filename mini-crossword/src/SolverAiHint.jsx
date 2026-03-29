@@ -42,8 +42,15 @@ export function SolverAiHintControl({
       if (!wrapRef.current || wrapRef.current.contains(e.target)) return
       setOpen(false)
     }
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
     document.addEventListener('mousedown', onDocDown)
-    return () => document.removeEventListener('mousedown', onDocDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onDocDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
   }, [open])
 
   const onButtonClick = () => {
@@ -57,7 +64,7 @@ export function SolverAiHintControl({
   }
 
   return (
-    <div className="solver-ai-hint-wrap" ref={wrapRef}>
+    <div className={`solver-ai-hint-wrap${open ? ' solver-ai-hint-wrap--open' : ''}`} ref={wrapRef}>
       <button
         type="button"
         className="ai-hint-icon-btn"
@@ -72,32 +79,44 @@ export function SolverAiHintControl({
         </span>
       </button>
       {open && (
-        <div
-          className="ai-hint-popover"
-          role="dialog"
-          aria-labelledby="ai-hint-popover-title"
-        >
-          <h3 id="ai-hint-popover-title" className="ai-hint-popover-title">
-            AI recommends…
-          </h3>
-          {loading && <p className="ai-hint-popover-status">Thinking…</p>}
-          {!loading && error && <p className="ai-hint-popover-error">{error}</p>}
-          {!loading && !error && suggestions.length === 0 && (
-            <p className="ai-hint-popover-status">No suggestions returned.</p>
-          )}
-          {!loading && !error && suggestions.length > 0 && (
-            <ul className="ai-hint-suggestions">
-              {suggestions.map((s, i) => (
-                <li key={`${i}-${s}`}>{s}</li>
-              ))}
-            </ul>
-          )}
-          {!loading && (
-            <button type="button" className="ai-hint-refresh" onClick={() => void runFetch()}>
-              Refresh
-            </button>
-          )}
-        </div>
+        <>
+          <div
+            className="ai-hint-popover-backdrop"
+            aria-hidden
+            onMouseDown={(e) => {
+              e.preventDefault()
+              setOpen(false)
+            }}
+          />
+          <div
+            className="ai-hint-popover"
+            role="dialog"
+            aria-labelledby="ai-hint-popover-title"
+          >
+            <div className="ai-hint-popover-inner">
+              <h3 id="ai-hint-popover-title" className="ai-hint-popover-title">
+                AI recommends…
+              </h3>
+              {loading && <p className="ai-hint-popover-status">Thinking…</p>}
+              {!loading && error && <p className="ai-hint-popover-error">{error}</p>}
+              {!loading && !error && suggestions.length === 0 && (
+                <p className="ai-hint-popover-status">No suggestions returned.</p>
+              )}
+              {!loading && !error && suggestions.length > 0 && (
+                <ul className="ai-hint-suggestions">
+                  {suggestions.map((s, i) => (
+                    <li key={`${i}-${s}`}>{s}</li>
+                  ))}
+                </ul>
+              )}
+              {!loading && (
+                <button type="button" className="ai-hint-refresh" onClick={() => void runFetch()}>
+                  Refresh
+                </button>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

@@ -1,2 +1,4 @@
 .env
 mini-crossword/.env
+.vercel
+.env*.local
